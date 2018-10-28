@@ -18,6 +18,8 @@ setup(
         'scipy',
         'torch',
         'torchvision',
+        'imutils',
+        'opencv-python'
     ],
     extras_require={
         'test': [
