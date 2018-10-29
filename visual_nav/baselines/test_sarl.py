@@ -1,8 +1,9 @@
 import logging
+import configparser
 import torch
 import gym
 from visual_sim.envs.visual_sim import VisualSim
-from crowd_sim.envs.policy.orca import ORCA
+from crowd_nav.policy.sarl import SARL
 
 
 def test():
@@ -11,7 +12,15 @@ def test():
 
     env = gym.make('VisualSim-v0')
     env = VisualSim()
-    policy = ORCA()
+
+    # configure SARL
+    policy = SARL()
+    policy.epsilon = 0
+    policy_config = configparser.RawConfigParser()
+    policy_config.read('data/sarl/policy.config')
+    policy.configure(policy_config)
+    policy.model.load_state_dict(torch.load('data/sarl/rl_model.pth'))
+
     policy.set_device(torch.device('cpu'))
     policy.set_phase('test')
     policy.time_step = env.time_step

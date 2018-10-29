@@ -1,8 +1,10 @@
 import math
+import itertools
 from collections import defaultdict
 import numpy as np
 from numpy.linalg import norm
 from gym import Env
+from gym.spaces import Discrete, Box
 import airsim
 from crowd_sim.envs.utils.state import ObservableState, FullState, JointState
 from crowd_sim.envs.utils.action import ActionXY, ActionRot
@@ -17,22 +19,35 @@ class VisualSim(Env):
         self.blocking = True
         self.time_step = 0.25
         self.time = 0
-        self.max_time = 50
-        self.goal_distance = 20
-        # Scene = 0,
-        # DepthPlanner = 1,
-        # DepthPerspective = 2,
-        # DepthVis = 3,
-        # DisparityNormalized = 4,
-        # Segmentation = 5,
-        # SurfaceNormals = 6,
-        # Infrared = 7
-        self.image_types = [0]
+
+        # rewards
+        self.collision_penalty = 0.2
+        self.success_reward = 1
+        self.max_time = 30
+        self.goal_distance = 10
+
+        # human
         self.human_num = 10
         self.humans = defaultdict(list)
         self.human_radius = 0.42
+
+        # robot
+        self.max_speed = 1
         self.robot_radius = 0.3
         self.robot = list()
+
+        # action space
+        self.speed_samples = 3
+        self.rotation_samples = 5
+        self.actions = None
+        self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
+
+        # observation_space
+        self.image_types = [0]
+        self.observation_space = Box(low=0, high=255, shape=(144, 256, 3))
+
+        # train test setting
+        self.test_case_num = 10
 
         if self.robot_dynamics:
             client = airsim.CarClient()
@@ -54,27 +69,33 @@ class VisualSim(Env):
         if self.robot_dynamics:
             self.client.reset()
         else:
-            self.move(self.initial_position, 0)
+            self.client.reset()
+            # self.move(self.initial_position, 0)
 
         return self.compute_observation()
 
     def step(self, action):
         pose = self.client.simGetVehiclePose()
         if self.robot_dynamics:
-            car_controls = interpret_action(action)
+            car_controls = self.interpret_action(action)
             self.client.setCarControls(car_controls)
             if self.blocking:
                 self.client.simContinueForTime(self.time_step)
         else:
-            if isinstance(action, ActionXY):
-                x = pose.position.x_val + action.vx * self.time_step
-                y = pose.position.y_val + action.vy * self.time_step
+            move = self.interpret_action(action)
+            if isinstance(move, ActionXY):
+                x = pose.position.x_val + move.vx * self.time_step
+                y = pose.position.y_val + move.vy * self.time_step
                 yaw = np.arctan2(y, x)
-                self.move((x, y, self.initial_position[2]), yaw)
-                if self.blocking:
-                    self.client.simContinueForTime(self.time_step)
+            elif isinstance(move, ActionRot):
+                yaw = move.r
+                x = pose.position.x_val + move.v * np.cos(move.r)
+                y = pose.position.y_val + move.v * np.sin(move.r)
             else:
                 raise NotImplementedError
+            self.move((x, y, self.initial_position[2]), yaw)
+            if self.blocking:
+                self.client.simContinueForTime(self.time_step)
         self.time += self.time_step
 
         position = pose.position
@@ -82,11 +103,11 @@ class VisualSim(Env):
         dist = norm(current_position - self.goal_position)
         collision_info = self.client.simGetCollisionInfo()
         if dist < self.robot_radius:
-            reward = 1
+            reward = self.success_reward
             done = True
             info = 'Accomplishment'
         elif collision_info.has_collided:
-            reward = -1
+            reward = self.collision_penalty
             done = True
             info = 'Collision'
         elif self.time >= self.max_time:
@@ -131,7 +152,7 @@ class VisualSim(Env):
 
             images.append(image)
 
-        return images
+        return images[0]
 
     def compute_coordinate_observation(self, in_fov=True):
         # retrieve all humans status
@@ -171,22 +192,40 @@ class VisualSim(Env):
 
         return joint_state
 
+    def interpret_action(self, action):
+        if self.robot_dynamics:
+            car_controls = airsim.CarControls()
+            car_controls.brake = 0
+            car_controls.throttle = 1
+            if action == 0:
+                car_controls.throttle = 0
+                car_controls.brake = 1
+            elif action == 1:
+                car_controls.steering = 0
+            elif action == 2:
+                car_controls.steering = 0.5
+            elif action == 3:
+                car_controls.steering = -0.5
+            elif action == 4:
+                car_controls.steering = 0.25
+            else:
+                car_controls.steering = -0.25
+            return car_controls
+        else:
+            if isinstance(action, int):
+                if self.actions is None:
+                    speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
+                              range(self.speed_samples)]
+                    rotations = np.linspace(-np.pi / 3, np.pi / 3, self.rotation_samples)
 
-def interpret_action(action):
-    car_controls = airsim.CarControls()
-    car_controls.brake = 0
-    car_controls.throttle = 1
-    if action == 0:
-        car_controls.throttle = 0
-        car_controls.brake = 1
-    elif action == 1:
-        car_controls.steering = 0
-    elif action == 2:
-        car_controls.steering = 0.5
-    elif action == 3:
-        car_controls.steering = -0.5
-    elif action == 4:
-        car_controls.steering = 0.25
-    else:
-        car_controls.steering = -0.25
-    return car_controls
+                    self.actions = [ActionRot(0, 0)]
+                    for rotation, speed in itertools.product(rotations, speeds):
+                        self.actions.append(ActionRot(speed, rotation))
+                return self.actions[action]
+            elif isinstance(action, ActionRot) or isinstance(action, ActionXY):
+                return action
+            else:
+                print(action)
+                raise NotImplementedError
+
+

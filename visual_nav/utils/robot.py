@@ -1,3 +1,4 @@
+import time
 
 
 class Robot(object):
@@ -5,4 +6,13 @@ class Robot(object):
         pass
 
     def act(self, ob):
+        # time.sleep(3)
+        # print('sleep for 3 seconds')
         return 1
+
+    def detect(self, image):
+        pass
+
+    def track(self):
+        pass
+

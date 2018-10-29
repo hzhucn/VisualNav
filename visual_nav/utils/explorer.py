@@ -1,7 +1,6 @@
 import logging
 import copy
 import torch
-from visual_sim.envs.utils.info import *
 
 
 class Explorer(object):
@@ -49,14 +48,14 @@ class Explorer(object):
                     too_close += 1
                     min_dist.append(info.min_dist)
 
-            if isinstance(info, ReachGoal):
+            if info == 'Accomplishment':
                 success += 1
                 success_times.append(self.env.global_time)
-            elif isinstance(info, Collision):
+            elif info == 'Collision':
                 collision += 1
                 collision_cases.append(i)
                 collision_times.append(self.env.global_time)
-            elif isinstance(info, Timeout):
+            elif info == 'Timeout':
                 timeout += 1
                 timeout_cases.append(i)
                 timeout_times.append(self.env.time_limit)
@@ -64,7 +63,7 @@ class Explorer(object):
                 raise ValueError('Invalid end signal from environment')
 
             if update_memory:
-                if isinstance(info, ReachGoal) or isinstance(info, Collision):
+                if info == 'Accomplishment' or info == 'Collision':
                     # only add positive(success) or negative(collision) experience in experience set
                     self.update_memory(states, actions, rewards, imitation_learning)
 

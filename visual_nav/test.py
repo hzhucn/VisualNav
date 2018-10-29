@@ -1,13 +1,17 @@
 import logging
 import argparse
 import configparser
-import os
+import time
+import cv2
 import torch
-import numpy as np
 import gym
-from visual_nav.utils.robot import Robot
-from visual_sim.envs.visual_sim import VisualSim
+import numpy as np
 import matplotlib.pyplot as plt
+from visual_sim.envs.visual_sim import VisualSim
+from visual_nav.utils.robot import Robot
+from visual_nav.utils.detector import HOGDetector
+# from visual_nav.utils.utils import coordinate_transform
+from visual_nav.utils.explorer import Explorer
 
 
 def main():
@@ -34,21 +38,17 @@ def main():
     env = gym.make('VisualSim-v0')
     env = VisualSim()
     robot = Robot()
+    explorer = Explorer(env, robot, device)
 
-    while True:
+    if args.visualize:
         ob = env.reset()
         done = False
         while not done:
             action = robot.act(ob)
             ob, _, done, info = env.step(action)
-            plt.imshow(ob[1])
-        logging.info('Episode ends with signal: {}'.format(info))
-
-    if args.visualize:
-        pass
+        logging.info('Episode ends with signal: {} in {}s'.format(info, env.time))
     else:
-        # explorer.run_k_episodes(env.case_size[args.phase], args.phase, print_failure=True)
-        pass
+        explorer.run_k_episodes(env.test_case_num, 'test')
 
 
 if __name__ == '__main__':
