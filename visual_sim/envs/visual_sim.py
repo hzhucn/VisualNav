@@ -1,6 +1,7 @@
 import math
 import itertools
 from collections import defaultdict
+
 import numpy as np
 from numpy.linalg import norm
 from gym import Env
@@ -14,22 +15,23 @@ class VisualSim(Env):
     def __init__(self):
         self.initial_position = None
         self.goal_position = None
-        self.distance = 10000
         self.robot_dynamics = False
         self.blocking = True
         self.time_step = 0.25
+        self.clock_speed = 10
         self.time = 0
 
         # rewards
         self.collision_penalty = 0.2
         self.success_reward = 1
-        self.max_time = 30
+        self.max_time = 40
         self.goal_distance = 10
 
         # human
-        self.human_num = 10
+        self.human_num = 5
         self.humans = defaultdict(list)
-        self.human_radius = 0.42
+        # 2.7 * 0.73
+        self.human_radius = 1
 
         # robot
         self.max_speed = 1
@@ -75,12 +77,15 @@ class VisualSim(Env):
         return self.compute_observation()
 
     def step(self, action):
+        import time
         pose = self.client.simGetVehiclePose()
         if self.robot_dynamics:
             car_controls = self.interpret_action(action)
             self.client.setCarControls(car_controls)
             if self.blocking:
-                self.client.simContinueForTime(self.time_step)
+                self.client.simContinueForTime(self.time_step / self.clock_speed)
+                while not self.client.simIsPause():
+                    time.sleep(0.01)
         else:
             move = self.interpret_action(action)
             if isinstance(move, ActionXY):
@@ -95,7 +100,9 @@ class VisualSim(Env):
                 raise NotImplementedError
             self.move((x, y, self.initial_position[2]), yaw)
             if self.blocking:
-                self.client.simContinueForTime(self.time_step)
+                self.client.simContinueForTime(self.time_step / self.clock_speed)
+                while not self.client.simIsPause():
+                    time.sleep(0.01)
         self.time += self.time_step
 
         position = pose.position

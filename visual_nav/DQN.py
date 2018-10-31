@@ -3,6 +3,7 @@ import pickle
 from collections import namedtuple
 from itertools import count
 import random
+import logging
 
 import gym
 import gym.spaces
@@ -190,7 +191,7 @@ def train(
         else:
             action = torch.IntTensor([[random.randrange(num_actions)]])
         # Advance one step
-        obs, reward, done, _ = env.step(action.item())
+        obs, reward, done, info = env.step(action.item())
         # clip rewards between -1 and 1
         reward = max(-1.0, min(reward, 1.0))
         # Store other info in replay memory
@@ -262,20 +263,25 @@ def train(
         Statistic["best_mean_episode_rewards"].append(best_mean_episode_reward)
 
         if t % LOG_EVERY_N_STEPS == 0 and t > learning_starts:
-            print("Timestep %d" % (t,))
-            print("mean reward (100 episodes) %f" % mean_episode_reward)
-            print("best mean reward %f" % best_mean_episode_reward)
-            print("episodes %d" % len(episode_rewards))
-            print("exploration %f" % exploration.value(t))
+            logging.info("Timestep %d" % (t,))
+            logging.info("mean reward (100 episodes) %f" % mean_episode_reward)
+            logging.info("best mean reward %f" % best_mean_episode_reward)
+            logging.info("episodes %d" % len(episode_rewards))
+            logging.info("exploration %f" % exploration.value(t))
             sys.stdout.flush()
 
             # Dump statistics to pickle
-            with open('statistics.pkl', 'wb') as f:
+            with open('data/statistics.pkl', 'wb') as f:
                 pickle.dump(Statistic, f)
-                print("Saved to %s" % 'statistics.pkl')
+                logging.info("Saved to %s" % 'data/statistics.pkl')
+
+            torch.save(Q.state_dict(), 'data/weights.pth')
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s, %(levelname)s: %(message)s',
+                        datefmt="%Y-%m-%d %H:%M:%S")
+
     env = VisualSim()
     expt_dir = 'data/dqn-results'
     env = wrappers.Monitor(env, expt_dir, force=True)
@@ -304,7 +310,7 @@ def main():
         batch_size=32,
         gamma=0.99,
         # learning_starts=50000,
-        learning_starts=500,
+        learning_starts=50000,
         learning_freq=4,
         frame_history_len=4,
         target_update_freq=10000,
