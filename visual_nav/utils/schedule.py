@@ -1,10 +1,13 @@
 """
     This file is copied/apdated from https://github.com/berkeleydeeprlcourse/homework/tree/master/hw3
 """
+
+
 class Schedule(object):
     def value(self, t):
         """Value of the schedule at time t"""
         raise NotImplementedError()
+
 
 class ConstantSchedule(object):
     def __init__(self, value):
@@ -20,8 +23,10 @@ class ConstantSchedule(object):
         """See Schedule.value"""
         return self._v
 
+
 def linear_interpolation(l, r, alpha):
     return l + alpha * (r - l)
+
 
 class PiecewiseSchedule(object):
     def __init__(self, endpoints, interpolation=linear_interpolation, outside_value=None):
@@ -46,7 +51,7 @@ class PiecewiseSchedule(object):
         assert idxes == sorted(idxes)
         self._interpolation = interpolation
         self._outside_value = outside_value
-        self._endpoints      = endpoints
+        self._endpoints = endpoints
 
     def value(self, t):
         """See Schedule.value"""
@@ -58,6 +63,7 @@ class PiecewiseSchedule(object):
         # t does not belong to any of the pieces, so doom.
         assert self._outside_value is not None
         return self._outside_value
+
 
 class LinearSchedule(object):
     def __init__(self, schedule_timesteps, final_p, initial_p=1.0):
@@ -75,10 +81,10 @@ class LinearSchedule(object):
             final output value
         """
         self.schedule_timesteps = schedule_timesteps
-        self.final_p            = final_p
-        self.initial_p          = initial_p
+        self.final_p = final_p
+        self.initial_p = initial_p
 
     def value(self, t):
         """See Schedule.value"""
-        fraction  = min(float(t) / self.schedule_timesteps, 1.0)
+        fraction = min(float(t) / self.schedule_timesteps, 1.0)
         return self.initial_p + fraction * (self.final_p - self.initial_p)

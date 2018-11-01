@@ -53,14 +53,15 @@ class DQN(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
         self.fc4 = nn.Linear(7 * 14 * 64, 512)
-        self.fc5 = nn.Linear(512, num_actions)
+        self.fc5 = nn.Linear(520, num_actions)
 
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        x = F.relu(self.fc4(x.view(x.size(0), -1)))
-        return self.fc5(x)
+    def forward(self, frames, goals):
+        frames = F.relu(self.conv1(frames))
+        frames = F.relu(self.conv2(frames))
+        frames = F.relu(self.conv3(frames))
+        frames = F.relu(self.fc4(frames.view(frames.size(0), -1)))
+        features = torch.cat([frames, goals.view(goals.size(0), -1)], dim=1)
+        return self.fc5(features)
 
 
 class Variable(autograd.Variable):
@@ -133,12 +134,8 @@ def train(
     # BUILD MODEL #
     ###############
 
-    if len(env.observation_space.shape) == 1:
-        # This means we are running on low-dimensional observations (e.g. RAM)
-        input_arg = env.observation_space.shape[0]
-    else:
-        img_h, img_w, img_c = env.observation_space.shape
-        input_arg = frame_history_len * img_c
+    img_h, img_w, img_c = env.observation_space.shape
+    input_arg = frame_history_len * img_c
     num_actions = env.action_space.n
 
     # Construct an epsilon greedy policy with given exploration schedule
@@ -146,9 +143,10 @@ def train(
         sample = random.random()
         eps_threshold = exploration.value(t)
         if sample > eps_threshold:
-            obs = torch.from_numpy(obs).type(dtype).unsqueeze(0) / 255.0
+            frames = torch.from_numpy(obs[0]).type(dtype).unsqueeze(0) / 255.0
+            goals = torch.from_numpy(obs[1]).type(dtype).unsqueeze(0)
             # Use volatile = True if variable is only used in inference mode, i.e. don’t save the history
-            return model(Variable(obs)).data.max(1)[1].cpu()
+            return model(Variable(frames), Variable(goals)).data.max(1)[1].cpu()
         else:
             return torch.IntTensor([random.randrange(num_actions)])
 
@@ -178,7 +176,7 @@ def train(
 
         # Step the env and store the transition
         # Store last observation in replay memory and last_idx can be used to store action, reward, done
-        last_idx = replay_buffer.store_frame(last_obs)
+        last_idx = replay_buffer.store_observation(last_obs)
         # encode_recent_observation will take the latest observation
         # that you pushed into the buffer and compute the corresponding
         # input that should be given to a Q network by appending some
@@ -212,12 +210,15 @@ def train(
             # Note: done_mask[i] is 1 if the next state corresponds to the end of an episode,
             # in which case there is no Q-value at the next state; at the end of an
             # episode, only the current state reward contributes to the target
-            obs_batch, act_batch, rew_batch, next_obs_batch, done_mask = replay_buffer.sample(batch_size)
+            frames_batch, goals_batch, act_batch, rew_batch, next_frames_batch, next_goals_batch, done_mask = \
+                replay_buffer.sample(batch_size)
             # Convert numpy nd_array to torch variables for calculation
-            obs_batch = Variable(torch.from_numpy(obs_batch).type(dtype) / 255.0)
+            frames_batch = Variable(torch.from_numpy(frames_batch).type(dtype) / 255.0)
+            goals_batch = Variable(torch.from_numpy(goals_batch).type(dtype))
             act_batch = Variable(torch.from_numpy(act_batch).long())
             rew_batch = Variable(torch.from_numpy(rew_batch))
-            next_obs_batch = Variable(torch.from_numpy(next_obs_batch).type(dtype) / 255.0)
+            next_frames_batch = Variable(torch.from_numpy(next_frames_batch).type(dtype) / 255.0)
+            next_goals_batch = Variable(torch.from_numpy(next_goals_batch).type(dtype))
             not_done_mask = Variable(torch.from_numpy(1 - done_mask)).type(dtype)
 
             if USE_CUDA:
@@ -226,10 +227,10 @@ def train(
 
             # Compute current Q value, q_func takes only state and output value for every state-action pair
             # We choose Q based on action taken.
-            current_Q_values = Q(obs_batch).gather(1, act_batch.unsqueeze(1)).squeeze(1)
+            current_Q_values = Q(frames_batch, goals_batch).gather(1, act_batch.unsqueeze(1)).squeeze(1)
             # Compute next Q value based on which action gives max Q values
             # Detach variable from the current graph since we don't want gradients for next Q to propagated
-            next_max_q = target_Q(next_obs_batch).detach().max(1)[0]
+            next_max_q = target_Q(next_frames_batch, next_goals_batch).detach().max(1)[0]
             next_Q_values = not_done_mask * next_max_q
             # Compute the target of the current Q values
             target_Q_values = rew_batch + (gamma * next_Q_values)
@@ -310,7 +311,7 @@ def main():
         batch_size=32,
         gamma=0.99,
         # learning_starts=50000,
-        learning_starts=50000,
+        learning_starts=500,
         learning_freq=4,
         frame_history_len=4,
         target_update_freq=10000,

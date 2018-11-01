@@ -19,7 +19,8 @@ setup(
         'torch',
         'torchvision',
         'imutils',
-        'opencv-python'
+        'opencv-python',
+        'airsim'
     ],
     extras_require={
         'test': [

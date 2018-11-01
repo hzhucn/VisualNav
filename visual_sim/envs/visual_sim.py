@@ -1,6 +1,7 @@
 import math
 import itertools
 from collections import defaultdict
+from collections import namedtuple
 
 import numpy as np
 from numpy.linalg import norm
@@ -9,6 +10,10 @@ from gym.spaces import Discrete, Box
 import airsim
 from crowd_sim.envs.utils.state import ObservableState, FullState, JointState
 from crowd_sim.envs.utils.action import ActionXY, ActionRot
+
+
+Goal = namedtuple('Goal', ['r', 'phi'])
+Observation = namedtuple('Observation', ['image', 'goal'])
 
 
 class VisualSim(Env):
@@ -136,9 +141,10 @@ class VisualSim(Env):
     def move(self, pos, yaw):
         self.client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(float(pos[0]), float(pos[1]), float(pos[2])),
                                                   airsim.to_quaternion(0, 0, yaw)), True)
-        # client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(0, 0, 0),airsim.to_quaternion(0, 0, 0)), True)
+        # client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(0, 0, 0), airsim.to_quaternion(0, 0, 0)), True)
 
     def compute_observation(self):
+        # retrieve visual observation
         responses = self.client.simGetImages([airsim.ImageRequest("0", t, False, False) for t in self.image_types])
         images = []
         for image_type, response in zip(self.image_types, responses):
@@ -159,7 +165,15 @@ class VisualSim(Env):
 
             images.append(image)
 
-        return images[0]
+        # retrieve poses for both human and robot
+        pose = self.client.simGetVehiclePose()
+        r = norm((self.goal_position[0] - pose.position.x_val, self.goal_position[1] - pose.position.y_val))
+        phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val)
+        goal = Goal(r, phi)
+
+        observation = Observation(images[0], goal)
+
+        return observation
 
     def compute_coordinate_observation(self, in_fov=True):
         # retrieve all humans status

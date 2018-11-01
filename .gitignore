@@ -4,3 +4,4 @@ __pycache__
 scripts
 PythonClient/
 data/
+.ipynb_checkpoints/
