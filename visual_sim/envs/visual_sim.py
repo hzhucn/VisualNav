@@ -1,6 +1,7 @@
 import itertools
 from collections import defaultdict
 from collections import namedtuple
+import logging
 from PIL import Image
 
 import numpy as np
@@ -68,8 +69,8 @@ class VisualSim(Env):
 
         # action space
         self.speed_samples = 3
-        self.rotation_samples = 5
-        self.actions = None
+        self.rotation_samples = 7
+        self.actions = self.build_action_space()
         self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
 
         # observation_space
@@ -98,7 +99,6 @@ class VisualSim(Env):
             self.client.reset()
         else:
             self.client.reset()
-            # self.move(self.initial_position, 0)
 
         return self.compute_observation()
 
@@ -135,7 +135,8 @@ class VisualSim(Env):
         self.time += self.time_step
 
         pose = self.client.simGetVehiclePose()
-        assert np.isclose(pose.position.x_val, x) and np.isclose(pose.position.y_val, y)
+        if not (np.isclose(pose.position.x_val, x) and np.isclose(pose.position.y_val, y)):
+            logging.debug('Different pose values between simGetVehiclePose and simSetVehiclePose!!!')
         dist = self.distance_to_goal(pose.position)
         collision_info = self.client.simGetCollisionInfo()
         if dist < self.robot_radius:
@@ -253,14 +254,6 @@ class VisualSim(Env):
             return car_controls
         else:
             if isinstance(action, int):
-                if self.actions is None:
-                    speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
-                              range(self.speed_samples)]
-                    rotations = np.linspace(-np.pi / 3, np.pi / 3, self.rotation_samples)
-
-                    self.actions = [ActionRot(0, 0)]
-                    for rotation, speed in itertools.product(rotations, speeds):
-                        self.actions.append(ActionRot(speed, rotation))
                 return self.actions[action]
             elif isinstance(action, ActionRot) or isinstance(action, ActionXY):
                 return action
@@ -271,3 +264,13 @@ class VisualSim(Env):
     def distance_to_goal(self, position):
         return norm((self.goal_position[0] - position.x_val, self.goal_position[1] - position.y_val))
 
+    def build_action_space(self):
+        speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
+                  range(self.speed_samples)]
+        rotations = np.linspace(-np.pi / 4, np.pi / 4, self.rotation_samples)
+
+        actions = [ActionRot(0, 0)]
+        for rotation, speed in itertools.product(rotations, speeds):
+            actions.append(ActionRot(speed, rotation))
+
+        return actions

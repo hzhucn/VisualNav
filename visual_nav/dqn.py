@@ -4,11 +4,14 @@ from collections import namedtuple
 from itertools import count
 import random
 import logging
+import os
+import argparse
+import shutil
 
+import git
 import gym
 import gym.spaces
 from gym import wrappers
-
 import numpy as np
 import torch
 import torch.autograd as autograd
@@ -16,6 +19,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from crowd_sim.envs.utils.action import ActionXY, ActionRot
+from crowd_sim.envs.policy.orca import ORCA
 from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.gym import get_wrapper_by_name
 from visual_nav.utils.schedule import LinearSchedule
@@ -71,222 +76,330 @@ class Variable(autograd.Variable):
         super(Variable, self).__init__(data, *args, **kwargs)
 
 
-def train(
-    env,
-    q_func,
-    optimizer_spec,
-    exploration,
-    stopping_criterion=None,
-    replay_buffer_size=1000000,
-    batch_size=32,
-    gamma=0.99,
-    learning_starts=50000,
-    learning_freq=4,
-    frame_history_len=4,
-    target_update_freq=10000
-    ):
+class Trainer(object):
+    def __init__(self,
+                 env,
+                 q_func,
+                 optimizer_spec,
+                 exploration,
+                 stopping_criterion=None,
+                 replay_buffer_size=1000000,
+                 batch_size=128,
+                 gamma=0.99,
+                 learning_starts=50000,
+                 learning_freq=4,
+                 frame_history_len=4,
+                 target_update_freq=10000,
+                 il_demonstrating_steps=100000,
+                 il_learning_steps=10000,
+                 il_weights_file='data/il_weights.pth',
+                 rl_weights_file='data/rl_weights.pth',
+                 statistics_file='data/statistics.pkl'
+                 ):
+        self.env = env
+        self.exploration = exploration
+        self.stopping_criterion = stopping_criterion
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.learning_starts = learning_starts
+        self.learning_freq = learning_freq
+        self.frame_history_len = frame_history_len
+        self.target_update_freq = target_update_freq
+        self.il_weights_file = il_weights_file
+        self.rl_weights_file = rl_weights_file
+        self.statistics_file = statistics_file
 
-    """Run Deep Q-learning algorithm.
+        img_h, img_w, img_c = env.observation_space.shape
+        input_arg = frame_history_len * img_c
+        self.num_actions = env.action_space.n
 
-    You can specify your own convnet using q_func.
+        self.Q = q_func(input_arg, self.num_actions).type(dtype)
+        self.target_Q = q_func(input_arg, self.num_actions).type(dtype)
+        self.optimizer = optimizer_spec.constructor(self.Q.parameters(), **optimizer_spec.kwargs)
+        self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len)
 
-    All schedules are w.r.t. total number of steps taken in the environment.
+        self.log_every_n_steps = 10000
+        self.num_param_updates = 0
+        self.actions = None
 
-    Parameters
-    ----------
-    env: gym.Env
-        gym environment to train on.
-    q_func: function
-        Model to use for computing the q function. It should accept the
-        following named arguments:
-            input_channel: int
-                number of channel of input.
-            num_actions: int
-                number of actions
-    optimizer_spec: OptimizerSpec
-        Specifying the constructor and kwargs, as well as learning rate schedule
-        for the optimizer
-    exploration: Schedule (defined in utils.schedule)
-        schedule for probability of chosing random action.
-    stopping_criterion: (env) -> bool
-        should return true when it's ok for the RL algorithm to stop.
-        takes in env and the number of steps executed so far.
-    replay_buffer_size: int
-        How many memories to store in the replay buffer.
-    batch_size: int
-        How many transitions to sample each time experience is replayed.
-    gamma: float
-        Discount Factor
-    learning_starts: int
-        After how many environment steps to start replaying experiences
-    learning_freq: int
-        How many steps of environment to take between every experience replay
-    frame_history_len: int
-        How many past frames to include as input to the model.
-    target_update_freq: int
-        How many experience replay rounds (not steps!) to perform between
-        each update to the target Q network
-    """
-    assert type(env.observation_space) == gym.spaces.Box
-    assert type(env.action_space)      == gym.spaces.Discrete
+        # imitation learning
+        self.il_demonstrating_steps = il_demonstrating_steps
+        self.il_learning_steps = il_learning_steps
 
-    ###############
-    # BUILD MODEL #
-    ###############
+    def imitation_learning(self):
+        if os.path.exists(self.il_weights_file):
+            self.Q.load_state_dict(torch.load(self.il_weights_file))
+            self.target_Q.load_state_dict(torch.load(self.il_weights_file))
+            logging.info('Imitation learning trained weight loaded')
+            self.test()
+            return
 
-    img_h, img_w, img_c = env.observation_space.shape
-    input_arg = frame_history_len * img_c
-    num_actions = env.action_space.n
+        logging.info('Start imitation learning')
+        # TODO: use 2D RL as demonstrator
+        demonstrator = ORCA()
+        demonstrator.set_device(torch.device('cpu'))
+        demonstrator.set_phase('test')
+        demonstrator.time_step = self.env.unwrapped.time_step
+        demonstrator = demonstrator
 
-    # Construct an epsilon greedy policy with given exploration schedule
-    def select_epsilon_greedy_action(model, obs, t):
+        obs = self.env.reset()
+        joint_state = self.env.unwrapped.compute_coordinate_observation()
+        step = 0
+        while True:
+            last_idx = self.replay_buffer.store_observation(obs)
+            action = demonstrator.predict(joint_state)
+            obs, reward, done, info = self.env.step(action)
+            target_action = torch.IntTensor([[self.translate_action(action)]])
+            self.replay_buffer.store_effect(last_idx, target_action, reward, done)
+
+            if info:
+                logging.debug('Episode finished with signal: {} in {}s'.format(info, self.env.unwrapped.time))
+            if done:
+                if step > self.il_demonstrating_steps:
+                    break
+                else:
+                   obs = self.env.reset()
+
+            joint_state = self.env.unwrapped.compute_coordinate_observation()
+            step += 1
+
+        # finish collecting experience and update the model
+        for _ in range(self.il_learning_steps):
+            self.td_update()
+        torch.save(self.Q.state_dict(), self.il_weights_file)
+        logging.info('Save imitation learning trained weights to {}'.format(self.il_weights_file))
+
+        self.test()
+
+    def translate_action(self, demonstration):
+        """ Translate demonstration action into target action category"""
+        assert isinstance(demonstration, ActionXY)
+        if self.actions is None:
+            actions = self.env.unwrapped.actions
+            self.actions = [ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r)) for action in actions]
+
+        min_diff = float('inf')
+        index = -1
+        for i, action in enumerate(self.actions):
+            diff = np.linalg.norm(np.array(action) - np.array(demonstration))
+            if diff < min_diff:
+                min_diff = diff
+                index = i
+
+        return index
+
+    def test(self):
+        logging.info('Start testing model')
+        replay_buffer = ReplayBuffer(100000, self.frame_history_len)
+
+        test_case_num = self.env.unwrapped.test_case_num
+        success = 0
+        collision = 0
+        overtime = 0
+        time = []
+        for i in range(test_case_num):
+            obs = self.env.reset()
+            done = False
+            while not done:
+                last_idx = replay_buffer.store_observation(obs)
+                recent_observations = replay_buffer.encode_recent_observation()
+                action = self.select_greedy_action(recent_observations)
+                ob, reward, done, info = self.env.step(action.item())
+                replay_buffer.store_effect(last_idx, action, reward, done)
+                if info == 'Accomplishment':
+                    success += 1
+                    time.append(self.env.time)
+                elif info == 'Collision':
+                    collision += 1
+                elif info == 'Overtime':
+                    overtime += 1
+
+            logging.info('Episode ends with signal: {} in {}s'.format(info, self.env.unwrapped.time))
+
+        avg_time = sum(time) / len(time) if time else 0
+        logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, average time: {:.2f}s'.format(
+            success / test_case_num, collision / test_case_num, overtime / test_case_num, avg_time))
+
+    def reinforcement_learning(self):
+        if os.path.exists(self.rl_weights_file):
+            self.Q.load_state_dict(torch.load(self.rl_weights_file))
+            self.target_Q.load_state_dict(torch.load(self.rl_weights_file))
+            logging.info('Reinforcement learning trained weight loaded')
+
+        logging.info('Start reinforcement learning')
+        mean_episode_reward = -float('nan')
+        best_mean_episode_reward = -float('inf')
+        last_obs = self.env.reset()
+
+        for t in count():
+            # Check stopping criterion
+            if self.stopping_criterion is not None and self.stopping_criterion(self.env):
+                break
+
+            # Step the env and store the transition
+            # Store last observation in replay memory and last_idx can be used to store action, reward, done
+            last_idx = self.replay_buffer.store_observation(last_obs)
+            # encode_recent_observation will take the latest observation
+            # that you pushed into the buffer and compute the corresponding
+            # input that should be given to a Q network by appending some
+            # previous frames.
+            recent_observations = self.replay_buffer.encode_recent_observation()
+
+            # Choose random action if not yet start learning
+            if t > self.learning_starts:
+                action = self.select_epsilon_greedy_action(Q, recent_observations, t)[0]
+            else:
+                action = torch.IntTensor([[random.randrange(self.num_actions)]])
+            # Advance one step
+            obs, reward, done, info = self.env.step(action.item())
+            if info:
+                logging.debug('Episode finished with signal: {} in {}s'.format(info, self.env.unwrapped.time))
+            # clip rewards between -1 and 1
+            reward = max(-1.0, min(reward, 1.0))
+            # Store other info in replay memory
+            self.replay_buffer.store_effect(last_idx, action, reward, done)
+            # Resets the environment when reaching an episode boundary.
+            if done:
+                obs = self.env.reset()
+            last_obs = obs
+
+            # Perform experience replay and train the network.
+            # Note that this is only done if the replay buffer contains enough samples
+            # for us to learn something useful -- until then, the model will not be
+            # initialized and random actions should be taken
+            if (t > self.learning_starts and t % self.learning_freq == 0 and
+                    self.replay_buffer.can_sample(self.batch_size)):
+                self.td_update()
+
+            # Log progress and keep track of statistics
+            episode_rewards = get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()
+            if len(episode_rewards) > 0:
+                mean_episode_reward = np.mean(episode_rewards[-100:])
+            if len(episode_rewards) > 100:
+                best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)
+
+            Statistic["mean_episode_rewards"].append(mean_episode_reward)
+            Statistic["best_mean_episode_rewards"].append(best_mean_episode_reward)
+
+            if t % self.log_every_n_steps == 0 and t > self.learning_starts:
+                logging.info("Timestep %d" % (t,))
+                logging.info("mean reward (100 episodes) %f" % mean_episode_reward)
+                logging.info("best mean reward %f" % best_mean_episode_reward)
+                logging.info("episodes %d" % len(episode_rewards))
+                logging.info("exploration %f" % self.exploration.value(t))
+                sys.stdout.flush()
+
+                # Dump statistics to pickle
+                with open(self.statistics_file, 'wb') as f:
+                    pickle.dump(Statistic, f)
+                    logging.info("Saved to %s" % self.statistics_file)
+
+                torch.save(self.Q.state_dict(), self.rl_weights_file)
+
+    def select_epsilon_greedy_action(self, model, obs, t):
         sample = random.random()
-        eps_threshold = exploration.value(t)
+        eps_threshold = self.exploration.value(t)
         if sample > eps_threshold:
             frames = torch.from_numpy(obs[0]).type(dtype).unsqueeze(0) / 255.0
             goals = torch.from_numpy(obs[1]).type(dtype).unsqueeze(0)
             # Use volatile = True if variable is only used in inference mode, i.e. don’t save the history
             return model(Variable(frames), Variable(goals)).data.max(1)[1].cpu()
         else:
-            return torch.IntTensor([random.randrange(num_actions)])
+            return torch.IntTensor([random.randrange(self.num_actions)])
 
-    # Initialize target q function and q function
-    Q = q_func(input_arg, num_actions).type(dtype)
-    target_Q = q_func(input_arg, num_actions).type(dtype)
+    def select_greedy_action(self, obs):
+        frames = torch.from_numpy(obs[0]).type(dtype).unsqueeze(0) / 255.0
+        goals = torch.from_numpy(np.array(obs[1])).type(dtype).unsqueeze(0)
+        return self.Q(Variable(frames), Variable(goals)).data.max(1)[1].cpu()
 
-    # Construct Q network optimizer function
-    optimizer = optimizer_spec.constructor(Q.parameters(), **optimizer_spec.kwargs)
+    def td_update(self):
+        # Use the replay buffer to sample a batch of transitions
+        # Note: done_mask[i] is 1 if the next state corresponds to the end of an episode,
+        # in which case there is no Q-value at the next state; at the end of an
+        # episode, only the current state reward contributes to the target
+        frames_batch, goals_batch, act_batch, rew_batch, next_frames_batch, next_goals_batch, done_mask = \
+            self.replay_buffer.sample(self.batch_size)
+        # Convert numpy nd_array to torch variables for calculation
+        frames_batch = Variable(torch.from_numpy(frames_batch).type(dtype) / 255.0)
+        goals_batch = Variable(torch.from_numpy(goals_batch).type(dtype))
+        act_batch = Variable(torch.from_numpy(act_batch).long())
+        rew_batch = Variable(torch.from_numpy(rew_batch))
+        next_frames_batch = Variable(torch.from_numpy(next_frames_batch).type(dtype) / 255.0)
+        next_goals_batch = Variable(torch.from_numpy(next_goals_batch).type(dtype))
+        not_done_mask = Variable(torch.from_numpy(1 - done_mask)).type(dtype)
 
-    # Construct the replay buffer
-    replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len)
+        if USE_CUDA:
+            act_batch = act_batch.cuda()
+            rew_batch = rew_batch.cuda()
 
-    ###############
-    #   RUN ENV   #
-    ###############
-    num_param_updates = 0
-    mean_episode_reward = -float('nan')
-    best_mean_episode_reward = -float('inf')
-    last_obs = env.reset()
-    LOG_EVERY_N_STEPS = 10000
+        # Compute current Q value, q_func takes only state and output value for every state-action pair
+        # We choose Q based on action taken.
+        current_Q_values = self.Q(frames_batch, goals_batch).gather(1, act_batch.unsqueeze(1)).squeeze(1)
+        # Compute next Q value based on which action gives max Q values
+        # Detach variable from the current graph since we don't want gradients for next Q to propagated
+        next_max_q = self.target_Q(next_frames_batch, next_goals_batch).detach().max(1)[0]
+        next_Q_values = not_done_mask * next_max_q
+        # Compute the target of the current Q values
+        target_Q_values = rew_batch + (self.gamma * next_Q_values)
+        # Compute Bellman error
+        bellman_error = target_Q_values - current_Q_values
+        # clip the bellman error between [-1 , 1]
+        clipped_bellman_error = bellman_error.clamp(-1, 1)
+        # Note: clipped_bellman_delta * -1 will be right gradient w.r.t current_Q_values
+        d_error = clipped_bellman_error * -1.0
+        # Clear previous gradients before backward pass
+        self.optimizer.zero_grad()
+        # run backward pass and back prop through Q network, d_error is the gradient of final loss w.r.t. Q
+        current_Q_values.backward(d_error.data)
 
-    for t in count():
-        # Check stopping criterion
-        if stopping_criterion is not None and stopping_criterion(env):
-            break
+        # Perform the update
+        self.optimizer.step()
+        self.num_param_updates += 1
 
-        # Step the env and store the transition
-        # Store last observation in replay memory and last_idx can be used to store action, reward, done
-        last_idx = replay_buffer.store_observation(last_obs)
-        # encode_recent_observation will take the latest observation
-        # that you pushed into the buffer and compute the corresponding
-        # input that should be given to a Q network by appending some
-        # previous frames.
-        recent_observations = replay_buffer.encode_recent_observation()
-
-        # Choose random action if not yet start learning
-        if t > learning_starts:
-            action = select_epsilon_greedy_action(Q, recent_observations, t)[0]
-        else:
-            action = torch.IntTensor([[random.randrange(num_actions)]])
-        # Advance one step
-        obs, reward, done, info = env.step(action.item())
-        # clip rewards between -1 and 1
-        reward = max(-1.0, min(reward, 1.0))
-        # Store other info in replay memory
-        replay_buffer.store_effect(last_idx, action, reward, done)
-        # Resets the environment when reaching an episode boundary.
-        if done:
-            obs = env.reset()
-        last_obs = obs
-
-        # Perform experience replay and train the network.
-        # Note that this is only done if the replay buffer contains enough samples
-        # for us to learn something useful -- until then, the model will not be
-        # initialized and random actions should be taken
-        if (t > learning_starts and
-                t % learning_freq == 0 and
-                replay_buffer.can_sample(batch_size)):
-            # Use the replay buffer to sample a batch of transitions
-            # Note: done_mask[i] is 1 if the next state corresponds to the end of an episode,
-            # in which case there is no Q-value at the next state; at the end of an
-            # episode, only the current state reward contributes to the target
-            frames_batch, goals_batch, act_batch, rew_batch, next_frames_batch, next_goals_batch, done_mask = \
-                replay_buffer.sample(batch_size)
-            # Convert numpy nd_array to torch variables for calculation
-            frames_batch = Variable(torch.from_numpy(frames_batch).type(dtype) / 255.0)
-            goals_batch = Variable(torch.from_numpy(goals_batch).type(dtype))
-            act_batch = Variable(torch.from_numpy(act_batch).long())
-            rew_batch = Variable(torch.from_numpy(rew_batch))
-            next_frames_batch = Variable(torch.from_numpy(next_frames_batch).type(dtype) / 255.0)
-            next_goals_batch = Variable(torch.from_numpy(next_goals_batch).type(dtype))
-            not_done_mask = Variable(torch.from_numpy(1 - done_mask)).type(dtype)
-
-            if USE_CUDA:
-                act_batch = act_batch.cuda()
-                rew_batch = rew_batch.cuda()
-
-            # Compute current Q value, q_func takes only state and output value for every state-action pair
-            # We choose Q based on action taken.
-            current_Q_values = Q(frames_batch, goals_batch).gather(1, act_batch.unsqueeze(1)).squeeze(1)
-            # Compute next Q value based on which action gives max Q values
-            # Detach variable from the current graph since we don't want gradients for next Q to propagated
-            next_max_q = target_Q(next_frames_batch, next_goals_batch).detach().max(1)[0]
-            next_Q_values = not_done_mask * next_max_q
-            # Compute the target of the current Q values
-            target_Q_values = rew_batch + (gamma * next_Q_values)
-            # Compute Bellman error
-            bellman_error = target_Q_values - current_Q_values
-            # clip the bellman error between [-1 , 1]
-            clipped_bellman_error = bellman_error.clamp(-1, 1)
-            # Note: clipped_bellman_delta * -1 will be right gradient w.r.t current_Q_values
-            d_error = clipped_bellman_error * -1.0
-            # Clear previous gradients before backward pass
-            optimizer.zero_grad()
-            # run backward pass and back prop through Q network, d_error is the gradient of final loss w.r.t. Q
-            current_Q_values.backward(d_error.data)
-
-            # Perform the update
-            optimizer.step()
-            num_param_updates += 1
-
-            # Periodically update the target network by Q network to target Q network
-            if num_param_updates % target_update_freq == 0:
-                target_Q.load_state_dict(Q.state_dict())
-
-        # 4. Log progress and keep track of statistics
-        episode_rewards = get_wrapper_by_name(env, "Monitor").get_episode_rewards()
-        if len(episode_rewards) > 0:
-            mean_episode_reward = np.mean(episode_rewards[-100:])
-        if len(episode_rewards) > 100:
-            best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)
-
-        Statistic["mean_episode_rewards"].append(mean_episode_reward)
-        Statistic["best_mean_episode_rewards"].append(best_mean_episode_reward)
-
-        if t % LOG_EVERY_N_STEPS == 0 and t > learning_starts:
-            logging.info("Timestep %d" % (t,))
-            logging.info("mean reward (100 episodes) %f" % mean_episode_reward)
-            logging.info("best mean reward %f" % best_mean_episode_reward)
-            logging.info("episodes %d" % len(episode_rewards))
-            logging.info("exploration %f" % exploration.value(t))
-            sys.stdout.flush()
-
-            # Dump statistics to pickle
-            with open('data/statistics.pkl', 'wb') as f:
-                pickle.dump(Statistic, f)
-                logging.info("Saved to %s" % 'data/statistics.pkl')
-
-            torch.save(Q.state_dict(), 'data/weights.pth')
+        # Periodically update the target network by Q network to target Q network
+        if self.num_param_updates % self.target_update_freq == 0:
+            self.target_Q.load_state_dict(self.Q.state_dict())
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s, %(levelname)s: %(message)s',
-                        datefmt="%Y-%m-%d %H:%M:%S")
+    parser = argparse.ArgumentParser('Parse configuration file')
+    parser.add_argument('--output_dir', type=str, default='data/output')
+    parser.add_argument('--debug', default=False, action='store_true')
+    args = parser.parse_args()
+
+    # configure paths
+    make_new_dir = True
+    if os.path.exists(args.output_dir):
+        key = input('Output directory already exists! Overwrite the folder? (y/n)')
+        if key == 'y':
+            shutil.rmtree(args.output_dir)
+        else:
+            make_new_dir = False
+    if make_new_dir:
+        os.makedirs(args.output_dir)
+    log_file = os.path.join(args.output_dir, 'output.log')
+    il_weights_file = os.path.join(args.output_dir, 'il_model.pth')
+    rl_weights_file = os.path.join(args.output_dir, 'rl_model.pth')
+    statistics_file = os.path.join(args.output_dir, 'statistics.pkl')
+    expt_dir = os.path.join(args.output_dir, 'monitor-results')
+
+    # configure logging
+    file_handler = logging.FileHandler(log_file, mode='w')
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    level = logging.DEBUG if args.debug else logging.INFO
+    logging.basicConfig(level=level, handlers=[stdout_handler, file_handler],
+                        format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+    repo = git.Repo(search_parent_directories=True)
+    logging.info('Current git head hash code: {}'.format(repo.head.object.hexsha))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    logging.info('Using device: %s', device)
 
     env = VisualSim()
-    expt_dir = 'data/dqn-results'
     env = wrappers.Monitor(env, expt_dir, force=True)
     num_timesteps = 1000000
+
+    assert type(env.observation_space) == gym.spaces.Box
+    assert type(env.action_space) == gym.spaces.Discrete
 
     def stopping_criterion(env):
         # notice that here t is the number of steps of the wrapped env,
@@ -297,10 +410,9 @@ def main():
         constructor=optim.RMSprop,
         kwargs=dict(lr=0.00025, alpha=0.95, eps=0.01),
     )
-
     exploration_schedule = LinearSchedule(1000000, 0.1)
 
-    train(
+    trainer = Trainer(
         env=env,
         q_func=DQN,
         optimizer_spec=optimizer_spec,
@@ -315,7 +427,12 @@ def main():
         learning_freq=4,
         frame_history_len=4,
         target_update_freq=10000,
+        il_weights_file=il_weights_file,
+        rl_weights_file=rl_weights_file,
+        statistics_file=statistics_file
     )
+    trainer.imitation_learning()
+    trainer.reinforcement_learning()
 
 
 if __name__ == '__main__':
