@@ -1,16 +1,9 @@
 import logging
 import argparse
-import configparser
-import time
-import cv2
 import torch
 import gym
-import numpy as np
-import matplotlib.pyplot as plt
 from visual_sim.envs.visual_sim import VisualSim
 from visual_nav.utils.robot import Robot
-from visual_nav.utils.detector import HOGDetector
-# from visual_nav.utils.utils import coordinate_transform
 from visual_nav.utils.explorer import Explorer
 
 

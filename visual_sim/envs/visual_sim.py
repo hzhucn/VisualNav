@@ -1,7 +1,7 @@
-import math
 import itertools
 from collections import defaultdict
 from collections import namedtuple
+from PIL import Image
 
 import numpy as np
 from numpy.linalg import norm
@@ -15,9 +15,33 @@ from crowd_sim.envs.utils.action import ActionXY, ActionRot
 Goal = namedtuple('Goal', ['r', 'phi'])
 Observation = namedtuple('Observation', ['image', 'goal'])
 
+ImageType = namedtuple('ImageType', ['index', 'as_float', 'channel_size'])
+
+ImageInfo = {
+    'Scene': ImageType(0, False, 3),
+    'DepthPlanner': ImageType(1, True, 1),
+    'DepthPerspective': ImageType(2, True, 1),
+    'DepthVis': ImageType(3, False, 1),
+    'DisparityNormalized': ImageType(4, False, 1),
+    'Segmentation': ImageType(5, False, 3),
+    'SurfaceNormals': ImageType(6, False, 3),
+    'Infrared': ImageType(7, False, 3)
+}
+
 
 class VisualSim(Env):
-    def __init__(self):
+    """
+    Image types:
+      Scene = 0,
+      DepthPlanner = 1,
+      DepthPerspective = 2,
+      DepthVis = 3,
+      DisparityNormalized = 4,
+      Segmentation = 5,
+      SurfaceNormals = 6,
+      Infrared = 7
+    """
+    def __init__(self, image_type='DepthPerspective'):
         self.initial_position = None
         self.goal_position = None
         self.robot_dynamics = False
@@ -27,9 +51,9 @@ class VisualSim(Env):
         self.time = 0
 
         # rewards
-        self.collision_penalty = 0.2
+        self.collision_penalty = -1
         self.success_reward = 1
-        self.max_time = 40
+        self.max_time = 30
         self.goal_distance = 10
 
         # human
@@ -50,8 +74,8 @@ class VisualSim(Env):
         self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
 
         # observation_space
-        self.image_types = [0]
-        self.observation_space = Box(low=0, high=255, shape=(144, 256, 3))
+        self.image_type = image_type
+        self.observation_space = Box(low=0, high=255, shape=(144, 256, ImageInfo[image_type].channel_size))
 
         # train test setting
         self.test_case_num = 10
@@ -145,25 +169,20 @@ class VisualSim(Env):
 
     def compute_observation(self):
         # retrieve visual observation
-        responses = self.client.simGetImages([airsim.ImageRequest("0", t, False, False) for t in self.image_types])
-        images = []
-        for image_type, response in zip(self.image_types, responses):
-            if image_type in [2, 3]:
-                # img1d = np.array(response.image_data_float, dtype=np.float)
-                # img1d = 255 / np.maximum(np.ones(img1d.size), img1d)
-                # image = np.reshape(img1d, (response.height, response.width)).astype(np.uint8)
-                img1d = np.fromstring(response.image_data_uint8, dtype=np.uint8)
-                image = img1d.reshape(response.height, response.width)
-            elif image_type == 0:
-                # get numpy array
-                img1d = np.fromstring(response.image_data_uint8, dtype=np.uint8)
-                # reshape array to 4 channel image array H X W X 4
-                image = img1d.reshape(response.height, response.width, 4)[:, :, :3]
-                image = np.ascontiguousarray(image, dtype=np.uint8)
-            else:
-                raise NotImplementedError
+        image_type = ImageInfo[self.image_type]
+        responses = self.client.simGetImages([airsim.ImageRequest(0, image_type.index, image_type.as_float, False)])
+        response = responses[0]
 
-            images.append(image)
+        if image_type.as_float:
+            img1d = np.array(response.image_data_float, dtype=np.float)
+            img1d = 255 / np.maximum(np.ones(img1d.size), img1d)
+            img2d = np.reshape(img1d, (response.height, response.width))
+            image = np.expand_dims(Image.fromarray(img2d).convert('L'), axis=2)
+        else:
+            # get numpy array
+            img1d = np.fromstring(response.image_data_uint8, dtype=np.uint8)
+            image = img1d.reshape(response.height, response.width, image_type.channel_size)
+            image = np.ascontiguousarray(image, dtype=np.uint8)
 
         # retrieve poses for both human and robot
         pose = self.client.simGetVehiclePose()
@@ -171,7 +190,7 @@ class VisualSim(Env):
         phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val)
         goal = Goal(r, phi)
 
-        observation = Observation(images[0], goal)
+        observation = Observation(image, goal)
 
         return observation
 

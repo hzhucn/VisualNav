@@ -20,7 +20,8 @@ setup(
         'torchvision',
         'imutils',
         'opencv-python',
-        'airsim'
+        'airsim',
+        'Pillow'
     ],
     extras_require={
         'test': [

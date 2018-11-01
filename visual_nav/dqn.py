@@ -19,7 +19,7 @@ import torch.optim as optim
 from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.gym import get_wrapper_by_name
 from visual_nav.utils.schedule import LinearSchedule
-from visual_sim.envs.visual_sim import VisualSim
+from visual_sim.envs.visual_sim import VisualSim, ImageInfo
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -311,7 +311,7 @@ def main():
         batch_size=32,
         gamma=0.99,
         # learning_starts=50000,
-        learning_starts=500,
+        learning_starts=50,
         learning_freq=4,
         frame_history_len=4,
         target_update_freq=10000,
