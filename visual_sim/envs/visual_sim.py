@@ -42,19 +42,18 @@ class VisualSim(Env):
       Infrared = 7
     """
     def __init__(self, image_type='DepthPerspective'):
-        self.initial_position = None
-        self.goal_position = None
         self.robot_dynamics = False
         self.blocking = True
         self.time_step = 0.25
         self.clock_speed = 10
         self.time = 0
+        self.initial_position = np.array((0, 0, -1))
+        self.goal_position = np.array((10, 0, 0))
 
         # rewards
         self.collision_penalty = -1
         self.success_reward = 1
         self.max_time = 30
-        self.goal_distance = 10
 
         # human
         self.human_num = 5
@@ -92,8 +91,6 @@ class VisualSim(Env):
 
     def reset(self):
         self.time = 0
-        self.initial_position = np.array((0, 0, -1))
-        self.goal_position = np.array((self.goal_distance, 0, 0))
         self.humans = defaultdict(list)
         self.robot = list()
 
@@ -108,6 +105,8 @@ class VisualSim(Env):
     def step(self, action):
         import time
         pose = self.client.simGetVehiclePose()
+        position = pose.position
+        orientation = pose.orientation
         if self.robot_dynamics:
             car_controls = self.interpret_action(action)
             self.client.setCarControls(car_controls)
@@ -118,13 +117,14 @@ class VisualSim(Env):
         else:
             move = self.interpret_action(action)
             if isinstance(move, ActionXY):
-                x = pose.position.x_val + move.vx * self.time_step
-                y = pose.position.y_val + move.vy * self.time_step
+                x = position.x_val + move.vx * self.time_step
+                y = position.y_val + move.vy * self.time_step
                 yaw = np.arctan2(y, x)
             elif isinstance(move, ActionRot):
-                yaw = move.r
-                x = pose.position.x_val + move.v * np.cos(move.r)
-                y = pose.position.y_val + move.v * np.sin(move.r)
+                _, _, yaw = airsim.to_eularian_angles(orientation)
+                yaw += move.r
+                x = position.x_val + move.v * np.cos(yaw)
+                y = position.y_val + move.v * np.sin(yaw)
             else:
                 raise NotImplementedError
             self.move((x, y, self.initial_position[2]), yaw)
@@ -134,9 +134,9 @@ class VisualSim(Env):
                     time.sleep(0.01)
         self.time += self.time_step
 
-        position = pose.position
-        current_position = np.array((position.x_val, position.y_val, 0))
-        dist = norm(current_position - self.goal_position)
+        pose = self.client.simGetVehiclePose()
+        assert np.isclose(pose.position.x_val, x) and np.isclose(pose.position.y_val, y)
+        dist = self.distance_to_goal(pose.position)
         collision_info = self.client.simGetCollisionInfo()
         if dist < self.robot_radius:
             reward = self.success_reward
@@ -147,6 +147,7 @@ class VisualSim(Env):
             done = True
             info = 'Collision'
         elif self.time >= self.max_time:
+            # TODO: should overtime trigger a done signal?
             reward = 0
             done = True
             info = 'Overtime'
@@ -165,7 +166,6 @@ class VisualSim(Env):
     def move(self, pos, yaw):
         self.client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(float(pos[0]), float(pos[1]), float(pos[2])),
                                                   airsim.to_quaternion(0, 0, yaw)), True)
-        # client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(0, 0, 0), airsim.to_quaternion(0, 0, 0)), True)
 
     def compute_observation(self):
         # retrieve visual observation
@@ -186,7 +186,7 @@ class VisualSim(Env):
 
         # retrieve poses for both human and robot
         pose = self.client.simGetVehiclePose()
-        r = norm((self.goal_position[0] - pose.position.x_val, self.goal_position[1] - pose.position.y_val))
+        r = self.distance_to_goal(pose.position)
         phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val)
         goal = Goal(r, phi)
 
@@ -268,4 +268,6 @@ class VisualSim(Env):
                 print(action)
                 raise NotImplementedError
 
+    def distance_to_goal(self, position):
+        return norm((self.goal_position[0] - position.x_val, self.goal_position[1] - position.y_val))
 
