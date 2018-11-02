@@ -6,3 +6,12 @@
 ```
 pip install -e .
 ```
+
+
+
+# Usage
+1. Run dqn.py inside visual_nav
+2. Monitor the training progress via
+```buildoutcfg
+tensorboard --logdir runs
+```

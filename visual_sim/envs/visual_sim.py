@@ -57,7 +57,7 @@ class VisualSim(Env):
         self.max_time = 30
 
         # human
-        self.human_num = 5
+        self.human_num = 2
         self.humans = defaultdict(list)
         # 2.7 * 0.73
         self.human_radius = 1
@@ -195,10 +195,20 @@ class VisualSim(Env):
 
         return observation
 
-    def compute_coordinate_observation(self, in_fov=True):
+    def compute_coordinate_observation(self, fov=True):
         # retrieve all humans status
         for i in range(self.human_num):
-            self.humans[i].append(self.client.simGetObjectPose('Human' + str(i)))
+            pose = self.client.simGetObjectPose('Human' + str(i))
+            trials = 0
+            while np.isnan(pose.position.x_val):
+                pose = self.client.simGetObjectPose('Human' + str(i))
+                trials += 1
+                logging.debug('Get NaN pose value. Try to call API again...')
+
+                if trials >= 3:
+                    logging.warning('Cannot get human status from client. Check human_num.')
+                    break
+            self.humans[i].append(pose)
         self.robot.append(self.client.simGetVehiclePose())
 
         # Todo: only consider humans in FOV

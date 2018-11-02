@@ -27,9 +27,9 @@ def test():
         while not done:
             action = policy.predict(joint_state)
             ob, reward, done, info = env.step(action)
-            import matplotlib.pyplot as plt
-            plt.imshow(ob[0], cmap='gray')
-            plt.show()
+            # import matplotlib.pyplot as plt
+            # plt.imshow(ob[0], cmap='gray')
+            # plt.show()
             joint_state = env.compute_coordinate_observation()
             if info == 'Accomplishment':
                 success += 1

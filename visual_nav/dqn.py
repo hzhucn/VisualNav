@@ -19,12 +19,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from crowd_sim.envs.utils.action import ActionXY, ActionRot
+from crowd_sim.envs.utils.action import ActionXY
 from crowd_sim.envs.policy.orca import ORCA
 from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.gym import get_wrapper_by_name
 from visual_nav.utils.schedule import LinearSchedule
-from visual_sim.envs.visual_sim import VisualSim, ImageInfo
+from visual_sim.envs.visual_sim import VisualSim
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -90,7 +90,7 @@ class Trainer(object):
                  learning_freq=4,
                  frame_history_len=4,
                  target_update_freq=10000,
-                 il_demonstrating_steps=100000,
+                 il_demonstrating_steps=50000,
                  il_learning_steps=10000,
                  il_weights_file='data/il_weights.pth',
                  rl_weights_file='data/rl_weights.pth',
@@ -140,17 +140,16 @@ class Trainer(object):
         demonstrator.set_device(torch.device('cpu'))
         demonstrator.set_phase('test')
         demonstrator.time_step = self.env.unwrapped.time_step
-        demonstrator = demonstrator
 
         obs = self.env.reset()
         joint_state = self.env.unwrapped.compute_coordinate_observation()
         step = 0
         while True:
             last_idx = self.replay_buffer.store_observation(obs)
-            action = demonstrator.predict(joint_state)
-            obs, reward, done, info = self.env.step(action)
-            target_action = torch.IntTensor([[self.translate_action(action)]])
-            self.replay_buffer.store_effect(last_idx, target_action, reward, done)
+            action_rot = demonstrator.predict(joint_state)
+            action_xy, index = self.translate_action(action_rot)
+            obs, reward, done, info = self.env.step(action_xy)
+            self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
 
             if info:
                 logging.debug('Episode finished with signal: {} in {}s'.format(info, self.env.unwrapped.time))
@@ -186,7 +185,7 @@ class Trainer(object):
                 min_diff = diff
                 index = i
 
-        return index
+        return self.actions[index], index
 
     def test(self):
         logging.info('Start testing model')
@@ -247,7 +246,7 @@ class Trainer(object):
 
             # Choose random action if not yet start learning
             if t > self.learning_starts:
-                action = self.select_epsilon_greedy_action(Q, recent_observations, t)[0]
+                action = self.select_epsilon_greedy_action(self.Q, recent_observations, t)[0]
             else:
                 action = torch.IntTensor([[random.randrange(self.num_actions)]])
             # Advance one step
@@ -317,40 +316,48 @@ class Trainer(object):
         # Note: done_mask[i] is 1 if the next state corresponds to the end of an episode,
         # in which case there is no Q-value at the next state; at the end of an
         # episode, only the current state reward contributes to the target
-        frames_batch, goals_batch, act_batch, rew_batch, next_frames_batch, next_goals_batch, done_mask = \
+        frames_batch, goals_batch, action_batch, reward_batch, next_frames_batch, next_goals_batch, done_mask = \
             self.replay_buffer.sample(self.batch_size)
         # Convert numpy nd_array to torch variables for calculation
         frames_batch = Variable(torch.from_numpy(frames_batch).type(dtype) / 255.0)
         goals_batch = Variable(torch.from_numpy(goals_batch).type(dtype))
-        act_batch = Variable(torch.from_numpy(act_batch).long())
-        rew_batch = Variable(torch.from_numpy(rew_batch))
+        action_batch = Variable(torch.from_numpy(action_batch).long())
+        reward_batch = Variable(torch.from_numpy(reward_batch))
         next_frames_batch = Variable(torch.from_numpy(next_frames_batch).type(dtype) / 255.0)
         next_goals_batch = Variable(torch.from_numpy(next_goals_batch).type(dtype))
         not_done_mask = Variable(torch.from_numpy(1 - done_mask)).type(dtype)
 
         if USE_CUDA:
-            act_batch = act_batch.cuda()
-            rew_batch = rew_batch.cuda()
+            action_batch = action_batch.cuda()
+            reward_batch = reward_batch.cuda()
 
         # Compute current Q value, q_func takes only state and output value for every state-action pair
-        # We choose Q based on action taken.
-        current_Q_values = self.Q(frames_batch, goals_batch).gather(1, act_batch.unsqueeze(1)).squeeze(1)
+        # We choose Q based on action taken, action is used to index the value in the dqn output
+        # current_q_values[i][j] = Q_outputs[i][action_batch[i][j]], where j=0
+        current_q_values = self.Q(frames_batch, goals_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
         # Compute next Q value based on which action gives max Q values
         # Detach variable from the current graph since we don't want gradients for next Q to propagated
         next_max_q = self.target_Q(next_frames_batch, next_goals_batch).detach().max(1)[0]
-        next_Q_values = not_done_mask * next_max_q
+        next_q_values = not_done_mask * next_max_q
         # Compute the target of the current Q values
-        target_Q_values = rew_batch + (self.gamma * next_Q_values)
+        target_q_values = reward_batch + (self.gamma * next_q_values)
+
         # Compute Bellman error
-        bellman_error = target_Q_values - current_Q_values
+        td_error = target_q_values - current_q_values
         # clip the bellman error between [-1 , 1]
-        clipped_bellman_error = bellman_error.clamp(-1, 1)
-        # Note: clipped_bellman_delta * -1 will be right gradient w.r.t current_Q_values
+        clipped_bellman_error = td_error.clamp(-1, 1)
+        # Note: clipped_bellman_delta * -1 will be right gradient w.r.t current_q_values
+        # Cuz in the td_error, there is a negative sing before current_q_values
         d_error = clipped_bellman_error * -1.0
         # Clear previous gradients before backward pass
         self.optimizer.zero_grad()
         # run backward pass and back prop through Q network, d_error is the gradient of final loss w.r.t. Q
-        current_Q_values.backward(d_error.data)
+        current_q_values.backward(d_error.data)
+
+        # # equivalent gradient computation, TODO: test
+        # loss = (target_q_values - current_q_values).pow(2).mean()
+        # self.optimizer.zero_grad()
+        # loss.backward()
 
         # Perform the update
         self.optimizer.step()
@@ -381,7 +388,7 @@ def main():
     il_weights_file = os.path.join(args.output_dir, 'il_model.pth')
     rl_weights_file = os.path.join(args.output_dir, 'rl_model.pth')
     statistics_file = os.path.join(args.output_dir, 'statistics.pkl')
-    expt_dir = os.path.join(args.output_dir, 'monitor-results')
+    monitor_dir = os.path.join(args.output_dir, 'monitor-outputs')
 
     # configure logging
     file_handler = logging.FileHandler(log_file, mode='w')
@@ -395,7 +402,7 @@ def main():
     logging.info('Using device: %s', device)
 
     env = VisualSim()
-    env = wrappers.Monitor(env, expt_dir, force=True)
+    env = wrappers.Monitor(env, monitor_dir, force=True)
     num_timesteps = 1000000
 
     assert type(env.observation_space) == gym.spaces.Box
