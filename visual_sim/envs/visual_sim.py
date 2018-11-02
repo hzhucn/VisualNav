@@ -75,10 +75,10 @@ class VisualSim(Env):
 
         # observation_space
         self.image_type = image_type
-        self.observation_space = Box(low=0, high=255, shape=(144, 256, ImageInfo[image_type].channel_size))
+        self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
 
         # train test setting
-        self.test_case_num = 10
+        self.test_case_num = 20
 
         if self.robot_dynamics:
             client = airsim.CarClient()
@@ -111,9 +111,10 @@ class VisualSim(Env):
             car_controls = self.interpret_action(action)
             self.client.setCarControls(car_controls)
             if self.blocking:
+                # pause for wall time self.time_step / self.clock_speed, which translates to game time self.time_step
                 self.client.simContinueForTime(self.time_step / self.clock_speed)
                 while not self.client.simIsPause():
-                    time.sleep(0.01)
+                    time.sleep(0.001)
         else:
             move = self.interpret_action(action)
             if isinstance(move, ActionXY):
@@ -130,8 +131,10 @@ class VisualSim(Env):
             self.move((x, y, self.initial_position[2]), yaw)
             if self.blocking:
                 self.client.simContinueForTime(self.time_step / self.clock_speed)
+                # start = time.time()
                 while not self.client.simIsPause():
-                    time.sleep(0.01)
+                    time.sleep(0.001)
+                # logging.debug('{:.2f}s past'.format(time.time() - start))
         self.time += self.time_step
 
         pose = self.client.simGetVehiclePose()
@@ -178,7 +181,7 @@ class VisualSim(Env):
             img1d = np.array(response.image_data_float, dtype=np.float)
             img1d = 255 / np.maximum(np.ones(img1d.size), img1d)
             img2d = np.reshape(img1d, (response.height, response.width))
-            image = np.expand_dims(Image.fromarray(img2d).convert('L'), axis=2)
+            image = np.expand_dims(Image.fromarray(img2d).resize(self.observation_space.shape[:2]).convert('L'), axis=2)
         else:
             # get numpy array
             img1d = np.fromstring(response.image_data_uint8, dtype=np.uint8)
@@ -268,8 +271,7 @@ class VisualSim(Env):
             elif isinstance(action, ActionRot) or isinstance(action, ActionXY):
                 return action
             else:
-                print(action)
-                raise NotImplementedError
+                logging.error(action)
 
     def distance_to_goal(self, position):
         return norm((self.goal_position[0] - position.x_val, self.goal_position[1] - position.y_val))

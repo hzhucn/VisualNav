@@ -56,8 +56,8 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
-        self.fc4 = nn.Linear(7 * 14 * 64, 512)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.fc4 = nn.Linear(7 * 7 * 64, 512)
         self.fc5 = nn.Linear(520, num_actions)
 
     def forward(self, frames, goals):
@@ -372,6 +372,7 @@ def main():
     parser = argparse.ArgumentParser('Parse configuration file')
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
+    parser.add_argument('--without_il', default=False, action='store_true')
     args = parser.parse_args()
 
     # configure paths
@@ -438,7 +439,8 @@ def main():
         rl_weights_file=rl_weights_file,
         statistics_file=statistics_file
     )
-    trainer.imitation_learning()
+    if not args.without_il:
+        trainer.imitation_learning()
     trainer.reinforcement_learning()
 
 
