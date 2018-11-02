@@ -384,7 +384,7 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logging.info('Using device: %s', device)
 
-    env = VisualSim()
+    env = VisualSim(step_penalty=-0.01)
     env = wrappers.Monitor(env, monitor_dir, force=True)
     num_timesteps = 1000000
 

@@ -42,7 +42,7 @@ class VisualSim(Env):
       SurfaceNormals = 6,
       Infrared = 7
     """
-    def __init__(self, image_type='DepthPerspective'):
+    def __init__(self, image_type='DepthPerspective', step_penalty=0):
         self.robot_dynamics = False
         self.blocking = True
         self.time_step = 0.25
@@ -52,7 +52,8 @@ class VisualSim(Env):
         self.goal_position = np.array((10, 0, 0))
 
         # rewards
-        self.collision_penalty = -0.25
+        self.step_penalty = step_penalty
+        self.collision_penalty = -1
         self.success_reward = 1
         self.max_time = 30
 
@@ -78,7 +79,7 @@ class VisualSim(Env):
         self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
 
         # train test setting
-        self.test_case_num = 20
+        self.test_case_num = 5
 
         if self.robot_dynamics:
             client = airsim.CarClient()
@@ -140,9 +141,10 @@ class VisualSim(Env):
         pose = self.client.simGetVehiclePose()
         if not (np.isclose(pose.position.x_val, x) and np.isclose(pose.position.y_val, y)):
             logging.debug('Different pose values between simGetVehiclePose and simSetVehiclePose!!!')
-        dist = self.distance_to_goal(pose.position)
+        reached_goal = self.distance_to_goal(pose.position) < self.robot_radius
         collision_info = self.client.simGetCollisionInfo()
-        if dist < self.robot_radius:
+
+        if reached_goal:
             reward = self.success_reward
             done = True
             info = 'Accomplishment'
@@ -150,13 +152,12 @@ class VisualSim(Env):
             reward = self.collision_penalty
             done = True
             info = 'Collision'
-        elif self.time >= self.max_time:
-            # TODO: should overtime trigger a done signal?
+        elif self.time > self.max_time:
             reward = 0
             done = True
             info = 'Overtime'
         else:
-            reward = 0
+            reward = self.step_penalty
             done = False
             info = ''
 
