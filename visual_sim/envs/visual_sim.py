@@ -52,7 +52,7 @@ class VisualSim(Env):
         self.goal_position = np.array((10, 0, 0))
 
         # rewards
-        self.collision_penalty = -1
+        self.collision_penalty = -0.25
         self.success_reward = 1
         self.max_time = 30
 
