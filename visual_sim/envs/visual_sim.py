@@ -42,7 +42,7 @@ class VisualSim(Env):
       SurfaceNormals = 6,
       Infrared = 7
     """
-    def __init__(self, image_type='DepthPerspective', step_penalty=0):
+    def __init__(self, image_type='DepthPerspective'):
         self.robot_dynamics = False
         self.blocking = True
         self.time_step = 0.25
@@ -52,31 +52,30 @@ class VisualSim(Env):
         self.goal_position = np.array((10, 0, 0))
 
         # rewards
-        self.step_penalty = step_penalty
         self.collision_penalty = -1
         self.success_reward = 1
         self.max_time = 30
 
         # human
         self.human_num = 2
-        self.humans = defaultdict(list)
+        self.human_states = defaultdict(list)
         # 2.7 * 0.73
         self.human_radius = 1
 
         # robot
         self.max_speed = 1
         self.robot_radius = 0.3
-        self.robot = list()
+        self.robot_states = list()
 
         # action space
         self.speed_samples = 3
         self.rotation_samples = 7
-        self.actions = self.build_action_space()
+        self.actions = self._build_action_space()
         self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
 
         # observation_space
         self.image_type = image_type
-        self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
+        self.observation_space = Box(low=0, high=255, shape=(144, 256, ImageInfo[image_type].channel_size))
 
         # train test setting
         self.test_case_num = 5
@@ -93,15 +92,18 @@ class VisualSim(Env):
 
     def reset(self):
         self.time = 0
-        self.humans = defaultdict(list)
-        self.robot = list()
+        self.human_states = defaultdict(list)
+        self.robot_states = list()
 
         if self.robot_dynamics:
             self.client.reset()
         else:
             self.client.reset()
 
-        return self.compute_observation()
+        self._update_states()
+        obs = self.compute_observation()
+
+        return obs
 
     def step(self, action):
         import time
@@ -109,7 +111,7 @@ class VisualSim(Env):
         position = pose.position
         orientation = pose.orientation
         if self.robot_dynamics:
-            car_controls = self.interpret_action(action)
+            car_controls = self._interpret_action(action)
             self.client.setCarControls(car_controls)
             if self.blocking:
                 # pause for wall time self.time_step / self.clock_speed, which translates to game time self.time_step
@@ -117,19 +119,22 @@ class VisualSim(Env):
                 while not self.client.simIsPause():
                     time.sleep(0.001)
         else:
-            move = self.interpret_action(action)
-            if isinstance(move, ActionXY):
-                x = position.x_val + move.vx * self.time_step
-                y = position.y_val + move.vy * self.time_step
+            if isinstance(action, int):
+                action_index = action
+                action = self._interpret_action(action_index)
+
+            if isinstance(action, ActionXY):
+                x = position.x_val + action.vx * self.time_step
+                y = position.y_val + action.vy * self.time_step
                 yaw = np.arctan2(y, x)
-            elif isinstance(move, ActionRot):
+            elif isinstance(action, ActionRot):
                 _, _, yaw = airsim.to_eularian_angles(orientation)
-                yaw += move.r
-                x = position.x_val + move.v * np.cos(yaw)
-                y = position.y_val + move.v * np.sin(yaw)
+                yaw += action.r
+                x = position.x_val + action.v * np.cos(yaw) * self.time_step
+                y = position.y_val + action.v * np.sin(yaw) * self.time_step
             else:
                 raise NotImplementedError
-            self.move((x, y, self.initial_position[2]), yaw)
+            self._move((x, y, self.initial_position[2]), yaw)
             if self.blocking:
                 self.client.simContinueForTime(self.time_step / self.clock_speed)
                 # start = time.time()
@@ -137,11 +142,12 @@ class VisualSim(Env):
                     time.sleep(0.001)
                 # logging.debug('{:.2f}s past'.format(time.time() - start))
         self.time += self.time_step
+        self._update_states()
 
         pose = self.client.simGetVehiclePose()
         if not (np.isclose(pose.position.x_val, x) and np.isclose(pose.position.y_val, y)):
             logging.debug('Different pose values between simGetVehiclePose and simSetVehiclePose!!!')
-        reached_goal = self.distance_to_goal(pose.position) < self.robot_radius
+        reached_goal = self._distance_to_goal(pose.position) < self.robot_radius
         collision_info = self.client.simGetCollisionInfo()
 
         if reached_goal:
@@ -157,7 +163,7 @@ class VisualSim(Env):
             done = True
             info = 'Overtime'
         else:
-            reward = self.step_penalty
+            reward = 0
             done = False
             info = ''
 
@@ -168,7 +174,7 @@ class VisualSim(Env):
     def render(self, mode='human'):
         pass
 
-    def move(self, pos, yaw):
+    def _move(self, pos, yaw):
         self.client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(float(pos[0]), float(pos[1]), float(pos[2])),
                                                   airsim.to_quaternion(0, 0, yaw)), True)
 
@@ -182,7 +188,7 @@ class VisualSim(Env):
             img1d = np.array(response.image_data_float, dtype=np.float)
             img1d = 255 / np.maximum(np.ones(img1d.size), img1d)
             img2d = np.reshape(img1d, (response.height, response.width))
-            image = np.expand_dims(Image.fromarray(img2d).resize(self.observation_space.shape[:2]).convert('L'), axis=2)
+            image = np.expand_dims(Image.fromarray(img2d).convert('L'), axis=2)
         else:
             # get numpy array
             img1d = np.fromstring(response.image_data_uint8, dtype=np.uint8)
@@ -191,7 +197,7 @@ class VisualSim(Env):
 
         # retrieve poses for both human and robot
         pose = self.client.simGetVehiclePose()
-        r = self.distance_to_goal(pose.position)
+        r = self._distance_to_goal(pose.position)
         phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val)
         goal = Goal(r, phi)
 
@@ -199,7 +205,7 @@ class VisualSim(Env):
 
         return observation
 
-    def compute_coordinate_observation(self, fov=True):
+    def _update_states(self):
         # retrieve all humans status
         for i in range(self.human_num):
             pose = self.client.simGetObjectPose('Human' + str(i))
@@ -212,72 +218,69 @@ class VisualSim(Env):
                 if trials >= 3:
                     logging.warning('Cannot get human status from client. Check human_num.')
                     break
-            self.humans[i].append(pose)
-        self.robot.append(self.client.simGetVehiclePose())
+            self.human_states[i].append(pose)
+        self.robot_states.append(self.client.simGetVehiclePose())
 
+    def compute_coordinate_observation(self, fov=True):
         # Todo: only consider humans in FOV
         human_states = []
         for i in range(self.human_num):
-            if len(self.humans[i]) == 1:
+            if len(self.human_states[i]) == 1:
                 vx = vy = 0
             else:
-                vx = (self.humans[i][-1].position.x_val - self.humans[i][-2].position.x_val) / self.time_step
-                vy = (self.humans[i][-1].position.y_val - self.humans[i][-2].position.y_val) / self.time_step
-            px = self.humans[i][-1].position.x_val
-            py = self.humans[i][-1].position.y_val
+                vx = (self.human_states[i][-1].position.x_val - self.human_states[i][-2].position.x_val) / self.time_step
+                vy = (self.human_states[i][-1].position.y_val - self.human_states[i][-2].position.y_val) / self.time_step
+            px = self.human_states[i][-1].position.x_val
+            py = self.human_states[i][-1].position.y_val
             human_state = ObservableState(px, py, vx, vy, self.human_radius)
             human_states.append(human_state)
 
-        px = self.robot[-1].position.x_val
-        py = self.robot[-1].position.y_val
-        if len(self.robot) == 1:
+        px = self.robot_states[-1].position.x_val
+        py = self.robot_states[-1].position.y_val
+        if len(self.robot_states) == 1:
             vx = vy = 0
         else:
             # TODO: use kinematics.linear_velocity?
-            vx = self.robot[-1].position.x_val - self.robot[-2].position.x_val
-            vy = self.robot[-1].position.y_val - self.robot[-2].position.y_val
+            vx = self.robot_states[-1].position.x_val - self.robot_states[-2].position.x_val
+            vy = self.robot_states[-1].position.y_val - self.robot_states[-2].position.y_val
         r  = self.robot_radius
         gx = self.goal_position[0]
         gy = self.goal_position[1]
         v_pref = 1
-        _, _, theta = airsim.to_eularian_angles(self.robot[-1].orientation)
+        _, _, theta = airsim.to_eularian_angles(self.robot_states[-1].orientation)
         robot_state = FullState(px, py, vx, vy, r, gx, gy, v_pref, theta)
 
         joint_state = JointState(robot_state, human_states)
 
         return joint_state
 
-    def interpret_action(self, action):
+    def _interpret_action(self, action_index):
+        assert isinstance(action_index, int)
         if self.robot_dynamics:
             car_controls = airsim.CarControls()
             car_controls.brake = 0
             car_controls.throttle = 1
-            if action == 0:
+            if action_index == 0:
                 car_controls.throttle = 0
                 car_controls.brake = 1
-            elif action == 1:
+            elif action_index == 1:
                 car_controls.steering = 0
-            elif action == 2:
+            elif action_index == 2:
                 car_controls.steering = 0.5
-            elif action == 3:
+            elif action_index == 3:
                 car_controls.steering = -0.5
-            elif action == 4:
+            elif action_index == 4:
                 car_controls.steering = 0.25
             else:
                 car_controls.steering = -0.25
             return car_controls
         else:
-            if isinstance(action, int):
-                return self.actions[action]
-            elif isinstance(action, ActionRot) or isinstance(action, ActionXY):
-                return action
-            else:
-                logging.error(action)
+            return self.actions[action_index]
 
-    def distance_to_goal(self, position):
+    def _distance_to_goal(self, position):
         return norm((self.goal_position[0] - position.x_val, self.goal_position[1] - position.y_val))
 
-    def build_action_space(self):
+    def _build_action_space(self):
         speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
                   range(self.speed_samples)]
         rotations = np.linspace(-np.pi / 4, np.pi / 4, self.rotation_samples)

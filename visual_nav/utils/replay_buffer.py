@@ -2,7 +2,7 @@
     This file is copied/apdated from https://github.com/berkeleydeeprlcourse/homework/tree/master/hw3
 """
 import random
-
+from PIL import Image
 import numpy as np
 
 
@@ -19,7 +19,7 @@ def sample_n_unique(sampling_f, n):
 
 
 class ReplayBuffer(object):
-    def __init__(self, size, frame_history_len):
+    def __init__(self, size, frame_history_len, image_size):
         """This is a memory efficient implementation of the replay buffer.
 
         The specific memory optimizations use here are:
@@ -47,6 +47,7 @@ class ReplayBuffer(object):
         """
         self.size = size
         self.frame_history_len = frame_history_len
+        self.image_size = image_size
 
         self.next_idx = 0
         self.num_in_buffer = 0
@@ -180,6 +181,9 @@ class ReplayBuffer(object):
             Index at which the frame is stored. To be used for `store_effect` later.
         """
         frame = ob.image
+        if frame.shape != self.image_size:
+            assert frame.shape[2] == 1
+            frame = np.expand_dims(Image.fromarray(frame.squeeze()).resize(self.image_size[:2]), axis=2)
         goal = ob.goal
 
         # make sure we are not using low-dimensional observations, such as RAM

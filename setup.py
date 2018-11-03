@@ -21,7 +21,8 @@ setup(
         'imutils',
         'opencv-python',
         'airsim',
-        'Pillow'
+        'Pillow',
+        'tensorboardX'
     ],
     extras_require={
         'test': [

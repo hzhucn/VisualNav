@@ -7,6 +7,7 @@ import logging
 import os
 import argparse
 import shutil
+import pprint
 
 import git
 import gym
@@ -18,12 +19,13 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from tensorboardX import SummaryWriter
 
 from crowd_sim.envs.utils.action import ActionXY
 from crowd_sim.envs.policy.orca import ORCA
 from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.gym import get_wrapper_by_name
-from visual_nav.utils.schedule import LinearSchedule
+from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_sim.envs.visual_sim import VisualSim
 
 
@@ -44,7 +46,7 @@ Statistic = {
 
 
 class DQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18):
+    def __init__(self, in_channels=4, num_actions=18, downsample_image=False):
         """
         Initialize a deep Q-learning network as described in
         https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
@@ -56,8 +58,12 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self.fc4 = nn.Linear(7 * 7 * 64, 512)
+        if downsample_image:
+            self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+            self.fc4 = nn.Linear(7 * 7 * 64, 512)
+        else:
+            self.conv3 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
+            self.fc4 = nn.Linear(7 * 14 * 64, 512)
         self.fc5 = nn.Linear(520, num_actions)
 
     def forward(self, frames, goals):
@@ -80,31 +86,43 @@ class Trainer(object):
     def __init__(self,
                  env,
                  q_func,
+                 output_dir,
                  replay_buffer_size=1000000,
                  batch_size=128,
                  gamma=0.99,
                  frame_history_len=4,
-                 target_update_freq=10000
+                 target_update_freq=10000,
+                 downsample_image=False
                  ):
         self.env = env
         self.batch_size = batch_size
         self.gamma = gamma
         self.frame_history_len = frame_history_len
         self.target_update_freq = target_update_freq
+        self.output_dir = output_dir
 
         img_h, img_w, img_c = env.observation_space.shape
         input_arg = frame_history_len * img_c
         self.num_actions = env.action_space.n
+        if downsample_image:
+            self.image_size = (84, 84, img_c, downsample_image)
+        else:
+            self.image_size = (img_h, img_w, img_c, downsample_image)
 
-        self.Q = q_func(input_arg, self.num_actions).type(dtype)
-        self.target_Q = q_func(input_arg, self.num_actions).type(dtype)
-        self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len)
+        self.Q = q_func(input_arg, self.num_actions, downsample_image).type(dtype)
+        self.target_Q = q_func(input_arg, self.num_actions, downsample_image).type(dtype)
+        self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len, self.image_size)
 
         self.log_every_n_steps = 10000
         self.num_param_updates = 0
         self.actions = None
 
-    def imitation_learning(self, optimizer_spec, weights_file, demonstrate_steps=50000, update_steps=10000):
+    def imitation_learning(self, optimizer_spec, demonstrate_steps=50000, update_steps=10000):
+        """
+        Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
+
+        """
+        weights_file = os.path.join(self.output_dir, 'il_model.pth')
         # TODO: how to optimize q-value function
         if os.path.exists(weights_file):
             self.Q.load_state_dict(torch.load(weights_file))
@@ -168,7 +186,7 @@ class Trainer(object):
 
     def test(self):
         logging.info('Start testing model')
-        replay_buffer = ReplayBuffer(100000, self.frame_history_len)
+        replay_buffer = ReplayBuffer(100000, self.frame_history_len, self.image_size)
 
         test_case_num = self.env.unwrapped.test_case_num
         success = 0
@@ -181,7 +199,7 @@ class Trainer(object):
             while not done:
                 last_idx = replay_buffer.store_observation(obs)
                 recent_observations = replay_buffer.encode_recent_observation()
-                action = self.select_greedy_action(recent_observations)
+                action = self.act(recent_observations)
                 ob, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
                 if info == 'Accomplishment':
@@ -198,14 +216,20 @@ class Trainer(object):
         logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, average time: {:.2f}s'.format(
             success / test_case_num, collision / test_case_num, overtime / test_case_num, avg_time))
 
-    def reinforcement_learning(self, optimizer_spec, exploration, weights_file, statistics_file,
-                               stopping_criterion=None, learning_starts=50000, learning_freq=4):
+    def reinforcement_learning(self, optimizer_spec, exploration, stopping_criterion=None, learning_starts=50000,
+                               learning_freq=4):
+        weights_file = os.path.join(self.output_dir, 'rl_model.pth')
+        statistics_file = os.path.join(self.output_dir, 'statistics.pkl')
+        tf_statistics_file = os.path.join(self.output_dir, 'statistics.json')
+
         if os.path.exists(weights_file):
             self.Q.load_state_dict(torch.load(weights_file))
             self.target_Q.load_state_dict(torch.load(weights_file))
             logging.info('Reinforcement learning trained weight loaded')
 
         logging.info('Start reinforcement learning')
+        writer = SummaryWriter()
+        episode_starts = len(get_wrapper_by_name(self.env, "Monitor").get_episode_rewards())
         mean_episode_reward = -float('nan')
         best_mean_episode_reward = -float('inf')
         last_obs = self.env.reset()
@@ -254,7 +278,7 @@ class Trainer(object):
                 self.td_update(optimizer)
 
             # Log progress and keep track of statistics
-            episode_rewards = get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()
+            episode_rewards = get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()[episode_starts:]
             if len(episode_rewards) > 0:
                 mean_episode_reward = np.mean(episode_rewards[-100:])
             if len(episode_rewards) > 100:
@@ -262,6 +286,8 @@ class Trainer(object):
 
             Statistic["mean_episode_rewards"].append(mean_episode_reward)
             Statistic["best_mean_episode_rewards"].append(best_mean_episode_reward)
+            writer.add_scalar('data/mean_episode_rewards', mean_episode_reward, t)
+            writer.add_scalar('data/best_mean_episode_rewards', best_mean_episode_reward, t)
 
             if t % self.log_every_n_steps == 0 and t > learning_starts:
                 logging.info("Timestep %d" % (t,))
@@ -278,6 +304,9 @@ class Trainer(object):
 
                 torch.save(self.Q.state_dict(), weights_file)
 
+        writer.export_scalars_to_json(tf_statistics_file)
+        writer.close()
+
     def select_epsilon_greedy_action(self, model, obs, eps_threshold):
         sample = random.random()
         if sample > eps_threshold:
@@ -288,7 +317,7 @@ class Trainer(object):
         else:
             return torch.IntTensor([random.randrange(self.num_actions)])
 
-    def select_greedy_action(self, obs):
+    def act(self, obs):
         frames = torch.from_numpy(obs[0]).type(dtype).unsqueeze(0) / 255.0
         goals = torch.from_numpy(np.array(obs[1])).type(dtype).unsqueeze(0)
         return self.Q(Variable(frames), Variable(goals)).data.max(1)[1].cpu()
@@ -349,12 +378,23 @@ class Trainer(object):
         if self.num_param_updates % self.target_update_freq == 0:
             self.target_Q.load_state_dict(self.Q.state_dict())
 
+    def mc_update(self):
+        pass
+
 
 def main():
     parser = argparse.ArgumentParser('Parse configuration file')
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--without_il', default=False, action='store_true')
+    parser.add_argument('--eps_start', type=float, default=1)
+    parser.add_argument('--eps_end', type=float, default=0.1)
+    parser.add_argument('--eps_decay_steps', type=int, default=1000000)
+    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--num_timesteps', type=int, default=2000000)
+    parser.add_argument('--learning_starts', type=int, default=50000)
+    parser.add_argument('--downsample_image', default=False, action='store_true')
     args = parser.parse_args()
 
     # configure paths
@@ -368,9 +408,6 @@ def main():
     if make_new_dir:
         os.makedirs(args.output_dir)
     log_file = os.path.join(args.output_dir, 'output.log')
-    il_weights_file = os.path.join(args.output_dir, 'il_model.pth')
-    rl_weights_file = os.path.join(args.output_dir, 'rl_model.pth')
-    statistics_file = os.path.join(args.output_dir, 'statistics.pkl')
     monitor_dir = os.path.join(args.output_dir, 'monitor-outputs')
 
     # configure logging
@@ -384,22 +421,25 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logging.info('Using device: %s', device)
 
-    env = VisualSim(step_penalty=-0.01)
-    env = wrappers.Monitor(env, monitor_dir, force=True)
-    num_timesteps = 1000000
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(vars(args))
 
+    # configure environment
+    env = VisualSim()
+    env = wrappers.Monitor(env, monitor_dir, force=True)
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
 
     trainer = Trainer(
         env=env,
         q_func=DQN,
-        # replay_buffer_size=1000000
+        output_dir=args.output_dir,
         replay_buffer_size=100000,
-        batch_size=32,
-        gamma=0.99,
+        batch_size=args.batch_size,
+        gamma=args.gamma,
         frame_history_len=4,
-        target_update_freq=10000
+        target_update_freq=10000,
+        downsample_image=args.downsample_image
     )
 
     # imitation learning
@@ -410,7 +450,6 @@ def main():
     if not args.without_il:
         trainer.imitation_learning(
             optimizer_spec=il_optimizer_spec,
-            weights_file=il_weights_file,
             demonstrate_steps=50000,
             update_steps=100000
         )
@@ -419,21 +458,21 @@ def main():
     def stopping_criterion(env):
         # notice that here t is the number of steps of the wrapped env,
         # which is different from the number of steps in the underlying env
-        return get_wrapper_by_name(env, "Monitor").get_total_steps() >= num_timesteps
+        return get_wrapper_by_name(env, "Monitor").get_total_steps() >= args.num_timesteps
 
     rl_optimizer_spec = OptimizerSpec(
         constructor=optim.RMSprop,
         kwargs=dict(lr=0.00025, alpha=0.95, eps=0.01),
     )
-    exploration_schedule = LinearSchedule(1000000, 0.1)
+    if args.eps_decay_steps == 0:
+        exploration_schedule = ConstantSchedule(0.1)
+    else:
+        exploration_schedule = LinearSchedule(args.eps_decay_steps, args.eps_end, args.eps_start)
     trainer.reinforcement_learning(
         optimizer_spec=rl_optimizer_spec,
         exploration=exploration_schedule,
         stopping_criterion=stopping_criterion,
-        weights_file=rl_weights_file,
-        statistics_file=statistics_file,
-        # learning_starts=50000,
-        learning_starts=50000,
+        learning_starts=args.learning_starts,
         learning_freq=4
     )
 
