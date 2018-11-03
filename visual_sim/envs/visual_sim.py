@@ -42,7 +42,7 @@ class VisualSim(Env):
       SurfaceNormals = 6,
       Infrared = 7
     """
-    def __init__(self, image_type='DepthPerspective'):
+    def __init__(self, image_type='DepthPerspective', reward_shaping=False):
         self.robot_dynamics = False
         self.blocking = True
         self.time_step = 0.25
@@ -55,6 +55,8 @@ class VisualSim(Env):
         self.collision_penalty = -1
         self.success_reward = 1
         self.max_time = 30
+        self.reward_shaping = reward_shaping
+        self.reward_per_meter = 0.01
 
         # human
         self.human_num = 2
@@ -144,10 +146,11 @@ class VisualSim(Env):
         self.time += self.time_step
         self._update_states()
 
-        pose = self.client.simGetVehiclePose()
-        if not (np.isclose(pose.position.x_val, x) and np.isclose(pose.position.y_val, y)):
+        past_pose = pose
+        current_pose = self.client.simGetVehiclePose()
+        if not (np.isclose(current_pose.position.x_val, x) and np.isclose(current_pose.position.y_val, y)):
             logging.debug('Different pose values between simGetVehiclePose and simSetVehiclePose!!!')
-        reached_goal = self._distance_to_goal(pose.position) < self.robot_radius
+        reached_goal = self._distance_to_goal(current_pose.position) < self.robot_radius
         collision_info = self.client.simGetCollisionInfo()
 
         if reached_goal:
@@ -163,7 +166,16 @@ class VisualSim(Env):
             done = True
             info = 'Overtime'
         else:
-            reward = 0
+            if self.reward_shaping:
+                heading_angle = np.arctan2(current_pose.position.y_val - past_pose.position.y_val,
+                                           current_pose.position.x_val - past_pose.position.x_val)
+                goal_angle = np.arctan2(self.goal_position[1] - past_pose.position.y_val,
+                                        self.goal_position[0] - past_pose.position.x_val)
+                dist = norm(self.goal_position - vector2array(past_pose.position))
+                projected_dist = np.cos(heading_angle - goal_angle) * dist
+                reward = self.reward_per_meter * projected_dist
+            else:
+                reward = 0
             done = False
             info = ''
 
@@ -290,3 +302,8 @@ class VisualSim(Env):
             actions.append(ActionRot(speed, rotation))
 
         return actions
+
+
+def vector2array(vector):
+    assert type(vector) == airsim.Vector3r
+    return np.array((vector.x_val, vector.y_val, vector.z_val))

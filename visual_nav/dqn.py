@@ -395,6 +395,7 @@ def main():
     parser.add_argument('--num_timesteps', type=int, default=2000000)
     parser.add_argument('--learning_starts', type=int, default=50000)
     parser.add_argument('--downsample_image', default=False, action='store_true')
+    parser.add_argument('--reward_shaping', default=False, action='store_true')
     args = parser.parse_args()
 
     # configure paths
@@ -425,7 +426,7 @@ def main():
     pp.pprint(vars(args))
 
     # configure environment
-    env = VisualSim()
+    env = VisualSim(reward_shaping=args.reward_shaping)
     env = wrappers.Monitor(env, monitor_dir, force=True)
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
