@@ -92,14 +92,17 @@ class Trainer(object):
                  gamma=0.99,
                  frame_history_len=4,
                  target_update_freq=10000,
-                 downsample_image=False
+                 downsample_image=False,
+                 num_test_case=20,
                  ):
         self.env = env
+        self.monitor = get_wrapper_by_name(self.env, "Monitor")
         self.batch_size = batch_size
         self.gamma = gamma
         self.frame_history_len = frame_history_len
         self.target_update_freq = target_update_freq
         self.output_dir = output_dir
+        self.num_test_case = num_test_case
 
         img_h, img_w, img_c = env.observation_space.shape
         input_arg = frame_history_len * img_c
@@ -128,7 +131,6 @@ class Trainer(object):
             self.Q.load_state_dict(torch.load(weights_file))
             self.target_Q.load_state_dict(torch.load(weights_file))
             logging.info('Imitation learning trained weight loaded')
-            self.test()
             return
 
         optimizer = optimizer_spec.constructor(self.Q.parameters(), **optimizer_spec.kwargs)
@@ -145,7 +147,7 @@ class Trainer(object):
         for step in count():
             last_idx = self.replay_buffer.store_observation(obs)
             action_rot = demonstrator.predict(joint_state)
-            action_xy, index = self.translate_action(action_rot)
+            action_xy, index = self._translate_action(action_rot)
             obs, reward, done, info = self.env.step(action_rot)
             self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
 
@@ -161,13 +163,13 @@ class Trainer(object):
 
         # finish collecting experience and update the model
         for _ in range(update_steps):
-            self.td_update(optimizer)
+            self._td_update(optimizer)
         torch.save(self.Q.state_dict(), weights_file)
         logging.info('Save imitation learning trained weights to {}'.format(weights_file))
 
         self.test()
 
-    def translate_action(self, demonstration):
+    def _translate_action(self, demonstration):
         """ Translate demonstration action into target action category"""
         assert isinstance(demonstration, ActionXY)
         if self.actions is None:
@@ -188,12 +190,12 @@ class Trainer(object):
         logging.info('Start testing model')
         replay_buffer = ReplayBuffer(100000, self.frame_history_len, self.image_size)
 
-        test_case_num = self.env.unwrapped.test_case_num
+        num_test_case = self.num_test_case
         success = 0
         collision = 0
         overtime = 0
         time = []
-        for i in range(test_case_num):
+        for i in range(num_test_case):
             obs = self.env.reset()
             done = False
             while not done:
@@ -204,17 +206,20 @@ class Trainer(object):
                 replay_buffer.store_effect(last_idx, action, reward, done)
                 if info == 'Accomplishment':
                     success += 1
-                    time.append(self.env.time)
+                    time.append(self.env.unwrapped.time)
                 elif info == 'Collision':
                     collision += 1
                 elif info == 'Overtime':
                     overtime += 1
 
-            logging.info('Episode ends with signal: {} in {}s'.format(info, self.env.unwrapped.time))
+            logging.info('Episode reward: {:.4f}, end signal: {}, time: {}s'.format
+                         (self.monitor.get_episode_rewards()[-1], info, self.env.unwrapped.time))
 
+        episode_rewards = self.monitor.get_episode_rewards()[-num_test_case:]
+        avg_reward = sum(episode_rewards) / num_test_case
         avg_time = sum(time) / len(time) if time else 0
-        logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, average time: {:.2f}s'.format(
-            success / test_case_num, collision / test_case_num, overtime / test_case_num, avg_time))
+        logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, avg time: {:.2f}s, avg reward: {:.4f}'.format(
+            success / num_test_case, collision / num_test_case, overtime / num_test_case, avg_time, avg_reward))
 
     def reinforcement_learning(self, optimizer_spec, exploration, stopping_criterion=None, learning_starts=50000,
                                learning_freq=4):
@@ -229,7 +234,7 @@ class Trainer(object):
 
         logging.info('Start reinforcement learning')
         writer = SummaryWriter()
-        episode_starts = len(get_wrapper_by_name(self.env, "Monitor").get_episode_rewards())
+        episode_starts = len(self.monitor.get_episode_rewards())
         mean_episode_reward = -float('nan')
         best_mean_episode_reward = -float('inf')
         last_obs = self.env.reset()
@@ -253,7 +258,7 @@ class Trainer(object):
             # Choose random action if not yet start learning
             if t > learning_starts:
                 eps_threshold = exploration.value(t)
-                action = self.select_epsilon_greedy_action(self.Q, recent_observations, eps_threshold)[0]
+                action = self._select_epsilon_greedy_action(self.Q, recent_observations, eps_threshold)[0]
             else:
                 action = torch.IntTensor([[random.randrange(self.num_actions)]])
             # Advance one step
@@ -275,10 +280,10 @@ class Trainer(object):
             # initialized and random actions should be taken
             if (t > learning_starts and t % learning_freq == 0 and
                     self.replay_buffer.can_sample(self.batch_size)):
-                self.td_update(optimizer)
+                self._td_update(optimizer)
 
             # Log progress and keep track of statistics
-            episode_rewards = get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()[episode_starts:]
+            episode_rewards = self.monitor.get_episode_rewards()[episode_starts:]
             if len(episode_rewards) > 0:
                 mean_episode_reward = np.mean(episode_rewards[-100:])
             if len(episode_rewards) > 100:
@@ -307,7 +312,7 @@ class Trainer(object):
         writer.export_scalars_to_json(tf_statistics_file)
         writer.close()
 
-    def select_epsilon_greedy_action(self, model, obs, eps_threshold):
+    def _select_epsilon_greedy_action(self, model, obs, eps_threshold):
         sample = random.random()
         if sample > eps_threshold:
             frames = torch.from_numpy(obs[0]).type(dtype).unsqueeze(0) / 255.0
@@ -322,7 +327,7 @@ class Trainer(object):
         goals = torch.from_numpy(np.array(obs[1])).type(dtype).unsqueeze(0)
         return self.Q(Variable(frames), Variable(goals)).data.max(1)[1].cpu()
 
-    def td_update(self, optimizer):
+    def _td_update(self, optimizer):
         # Use the replay buffer to sample a batch of transitions
         # Note: done_mask[i] is 1 if the next state corresponds to the end of an episode,
         # in which case there is no Q-value at the next state; at the end of an
@@ -378,7 +383,7 @@ class Trainer(object):
         if self.num_param_updates % self.target_update_freq == 0:
             self.target_Q.load_state_dict(self.Q.state_dict())
 
-    def mc_update(self):
+    def _mc_update(self):
         pass
 
 
@@ -396,18 +401,24 @@ def main():
     parser.add_argument('--learning_starts', type=int, default=50000)
     parser.add_argument('--downsample_image', default=False, action='store_true')
     parser.add_argument('--reward_shaping', default=False, action='store_true')
+    parser.add_argument('--test', default=False, action='store_true')
+    parser.add_argument('--num_test_case', type=int, default=20)
     args = parser.parse_args()
 
-    # configure paths
-    make_new_dir = True
-    if os.path.exists(args.output_dir):
-        key = input('Output directory already exists! Overwrite the folder? (y/n)')
-        if key == 'y':
-            shutil.rmtree(args.output_dir)
-        else:
-            make_new_dir = False
-    if make_new_dir:
-        os.makedirs(args.output_dir)
+    if args.test:
+        if not os.path.exists(args.output_dir):
+            raise ValueError('Model dir does not exist')
+    else:
+        # configure paths
+        make_new_dir = True
+        if os.path.exists(args.output_dir):
+            key = input('Output directory already exists! Overwrite the folder? (y/n)')
+            if key == 'y':
+                shutil.rmtree(args.output_dir)
+            else:
+                make_new_dir = False
+        if make_new_dir:
+            os.makedirs(args.output_dir)
     log_file = os.path.join(args.output_dir, 'output.log')
     monitor_dir = os.path.join(args.output_dir, 'monitor-outputs')
 
@@ -440,42 +451,46 @@ def main():
         gamma=args.gamma,
         frame_history_len=4,
         target_update_freq=10000,
-        downsample_image=args.downsample_image
+        downsample_image=args.downsample_image,
+        num_test_case=args.num_test_case
     )
 
-    # imitation learning
-    il_optimizer_spec = OptimizerSpec(
-        constructor=optim.RMSprop,
-        kwargs=dict(lr=0.01, alpha=0.95, eps=0.01),
-    )
-    if not args.without_il:
-        trainer.imitation_learning(
-            optimizer_spec=il_optimizer_spec,
-            demonstrate_steps=50000,
-            update_steps=100000
-        )
-
-    # reinforcement learning
-    def stopping_criterion(env):
-        # notice that here t is the number of steps of the wrapped env,
-        # which is different from the number of steps in the underlying env
-        return get_wrapper_by_name(env, "Monitor").get_total_steps() >= args.num_timesteps
-
-    rl_optimizer_spec = OptimizerSpec(
-        constructor=optim.RMSprop,
-        kwargs=dict(lr=0.00025, alpha=0.95, eps=0.01),
-    )
-    if args.eps_decay_steps == 0:
-        exploration_schedule = ConstantSchedule(0.1)
+    if args.test:
+        trainer.test()
     else:
-        exploration_schedule = LinearSchedule(args.eps_decay_steps, args.eps_end, args.eps_start)
-    trainer.reinforcement_learning(
-        optimizer_spec=rl_optimizer_spec,
-        exploration=exploration_schedule,
-        stopping_criterion=stopping_criterion,
-        learning_starts=args.learning_starts,
-        learning_freq=4
-    )
+        # imitation learning
+        il_optimizer_spec = OptimizerSpec(
+            constructor=optim.RMSprop,
+            kwargs=dict(lr=0.01, alpha=0.95, eps=0.01),
+        )
+        if not args.without_il:
+            trainer.imitation_learning(
+                optimizer_spec=il_optimizer_spec,
+                demonstrate_steps=50000,
+                update_steps=100000
+            )
+
+        # reinforcement learning
+        def stopping_criterion(env):
+            # notice that here t is the number of steps of the wrapped env,
+            # which is different from the number of steps in the underlying env
+            return get_wrapper_by_name(env, "Monitor").get_total_steps() >= args.num_timesteps
+
+        rl_optimizer_spec = OptimizerSpec(
+            constructor=optim.RMSprop,
+            kwargs=dict(lr=0.00025, alpha=0.95, eps=0.01),
+        )
+        if args.eps_decay_steps == 0:
+            exploration_schedule = ConstantSchedule(0.1)
+        else:
+            exploration_schedule = LinearSchedule(args.eps_decay_steps, args.eps_end, args.eps_start)
+        trainer.reinforcement_learning(
+            optimizer_spec=rl_optimizer_spec,
+            exploration=exploration_schedule,
+            stopping_criterion=stopping_criterion,
+            learning_starts=args.learning_starts,
+            learning_freq=4
+        )
 
 
 if __name__ == '__main__':

@@ -49,14 +49,14 @@ class VisualSim(Env):
         self.clock_speed = 10
         self.time = 0
         self.initial_position = np.array((0, 0, -1))
-        self.goal_position = np.array((10, 0, 0))
+        self.goal_position = np.array((10, 0, -1))
 
         # rewards
         self.collision_penalty = -1
         self.success_reward = 1
         self.max_time = 30
         self.reward_shaping = reward_shaping
-        self.reward_per_meter = 0.01
+        self.reward_per_meter = 0.1
 
         # human
         self.human_num = 2
@@ -79,9 +79,6 @@ class VisualSim(Env):
         self.image_type = image_type
         self.observation_space = Box(low=0, high=255, shape=(144, 256, ImageInfo[image_type].channel_size))
 
-        # train test setting
-        self.test_case_num = 5
-
         if self.robot_dynamics:
             client = airsim.CarClient()
             client.enableApiControl(True)
@@ -101,6 +98,7 @@ class VisualSim(Env):
             self.client.reset()
         else:
             self.client.reset()
+            self. _move(self.initial_position, 0)
 
         self._update_states()
         obs = self.compute_observation()
@@ -112,6 +110,7 @@ class VisualSim(Env):
         pose = self.client.simGetVehiclePose()
         position = pose.position
         orientation = pose.orientation
+        assert position.z_val == -1
         if self.robot_dynamics:
             car_controls = self._interpret_action(action)
             self.client.setCarControls(car_controls)
@@ -171,7 +170,7 @@ class VisualSim(Env):
                                            current_pose.position.x_val - past_pose.position.x_val)
                 goal_angle = np.arctan2(self.goal_position[1] - past_pose.position.y_val,
                                         self.goal_position[0] - past_pose.position.x_val)
-                dist = norm(self.goal_position - vector2array(past_pose.position))
+                dist = norm(vector2array(current_pose.position) - vector2array(past_pose.position))
                 projected_dist = np.cos(heading_angle - goal_angle) * dist
                 reward = self.reward_per_meter * projected_dist
             else:
@@ -290,7 +289,7 @@ class VisualSim(Env):
             return self.actions[action_index]
 
     def _distance_to_goal(self, position):
-        return norm((self.goal_position[0] - position.x_val, self.goal_position[1] - position.y_val))
+        return norm(self.goal_position - vector2array(position))
 
     def _build_action_space(self):
         speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
