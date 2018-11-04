@@ -216,6 +216,10 @@ class Trainer(object):
         writer = SummaryWriter()
         episode_starts = len(self.env.get_episode_rewards())
         avg_reward = -float('nan')
+        success_rate = -float('nan')
+        collision_rate = -float('nan')
+        overtime_rate = -float('nan')
+        avg_time = -float('nan')
         best_avg_episode_reward = -float('inf')
         last_obs = self.env.reset()
 
@@ -267,20 +271,19 @@ class Trainer(object):
             num_episodes = len(episode_rewards)
             if num_episodes > 0:
                 avg_reward = self.env.get_average_reward(num_last_episodes, episode_starts)
-            if num_episodes > num_last_episodes:
-                best_avg_episode_reward = max(best_avg_episode_reward, avg_reward)
-            writer.add_scalar('steps/mean_episode_rewards', avg_reward, t)
-            writer.add_scalar('steps/best_mean_episode_rewards', best_avg_episode_reward, t)
-
-            if num_episodes > 50:
                 success_rate = self.env.get_success_rate(num_last_episodes, episode_starts)
                 collision_rate = self.env.get_collision_rate(num_last_episodes, episode_starts)
                 overtime_rate = self.env.get_overtime_rate(num_last_episodes, episode_starts)
                 avg_time = self.env.get_average_time(num_last_episodes, episode_starts)
-                writer.add_scalar('episodes/success_rate', success_rate, num_episodes)
-                writer.add_scalar('episodes/collision_rate', collision_rate, num_episodes)
-                writer.add_scalar('episodes/overtime_rate', overtime_rate, num_episodes)
-                writer.add_scalar('episodes/mean_episode_time', avg_time, num_episodes)
+            if num_episodes > num_last_episodes:
+                best_avg_episode_reward = max(best_avg_episode_reward, avg_reward)
+
+            writer.add_scalar('data/mean_episode_rewards', avg_reward, t)
+            writer.add_scalar('data/best_mean_episode_rewards', best_avg_episode_reward, t)
+            writer.add_scalar('data/success_rate', success_rate, t)
+            writer.add_scalar('data/collision_rate', collision_rate, t)
+            writer.add_scalar('data/overtime_rate', overtime_rate, t)
+            writer.add_scalar('data/mean_episode_time', avg_time, t)
 
             if t % self.log_every_n_steps == 0 and t > learning_starts:
                 logging.info("Timestep %d" % (t,))
