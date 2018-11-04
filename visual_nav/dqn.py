@@ -12,7 +12,6 @@ import pprint
 import git
 import gym
 import gym.spaces
-from gym import wrappers
 import numpy as np
 import torch
 import torch.autograd as autograd
@@ -24,7 +23,8 @@ from tensorboardX import SummaryWriter
 from crowd_sim.envs.utils.action import ActionXY
 from crowd_sim.envs.policy.orca import ORCA
 from visual_nav.utils.replay_buffer import ReplayBuffer
-from visual_nav.utils.gym import get_wrapper_by_name
+from visual_nav.utils.my_monitor import MyMonitor
+from visual_nav.utils.utils import get_wrapper_by_name
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_sim.envs.visual_sim import VisualSim
 
@@ -151,13 +151,12 @@ class Trainer(object):
             obs, reward, done, info = self.env.step(action_rot)
             self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
 
-            if info:
-                logging.debug('Episode finished with signal: {} in {}s'.format(info, self.env.unwrapped.time))
             if done:
                 if step > demonstrate_steps:
                     break
                 else:
-                   obs = self.env.reset()
+                    self.env.print_episode_summary()
+                    obs = self.env.reset()
 
             joint_state = self.env.unwrapped.compute_coordinate_observation()
 
@@ -191,10 +190,6 @@ class Trainer(object):
         replay_buffer = ReplayBuffer(100000, self.frame_history_len, self.image_size)
 
         num_test_case = self.num_test_case
-        success = 0
-        collision = 0
-        overtime = 0
-        time = []
         for i in range(num_test_case):
             obs = self.env.reset()
             done = False
@@ -204,25 +199,13 @@ class Trainer(object):
                 action = self.act(recent_observations)
                 ob, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
-                if info == 'Accomplishment':
-                    success += 1
-                    time.append(self.env.unwrapped.time)
-                elif info == 'Collision':
-                    collision += 1
-                elif info == 'Overtime':
-                    overtime += 1
 
-            logging.info('Episode reward: {:.4f}, end signal: {}, time: {}s'.format
-                         (self.monitor.get_episode_rewards()[-1], info, self.env.unwrapped.time))
+            self.env.print_episode_summary()
 
-        episode_rewards = self.monitor.get_episode_rewards()[-num_test_case:]
-        avg_reward = sum(episode_rewards) / num_test_case
-        avg_time = sum(time) / len(time) if time else 0
-        logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, avg time: {:.2f}s, avg reward: {:.4f}'.format(
-            success / num_test_case, collision / num_test_case, overtime / num_test_case, avg_time, avg_reward))
+        self.env.print_episodes_summary(num_last_episodes=num_test_case)
 
-    def reinforcement_learning(self, optimizer_spec, exploration, stopping_criterion=None, learning_starts=50000,
-                               learning_freq=4):
+    def reinforcement_learning(self, optimizer_spec, exploration, learning_starts=50000,
+                               learning_freq=4, num_timesteps=2000000):
         weights_file = os.path.join(self.output_dir, 'rl_model.pth')
         statistics_file = os.path.join(self.output_dir, 'statistics.pkl')
         tf_statistics_file = os.path.join(self.output_dir, 'statistics.json')
@@ -243,7 +226,7 @@ class Trainer(object):
 
         for t in count():
             # Check stopping criterion
-            if stopping_criterion is not None and stopping_criterion(self.env):
+            if self.env.get_total_steps() > num_timesteps:
                 break
 
             # Step the env and store the transition
@@ -263,14 +246,13 @@ class Trainer(object):
                 action = torch.IntTensor([[random.randrange(self.num_actions)]])
             # Advance one step
             obs, reward, done, info = self.env.step(action.item())
-            if info:
-                logging.debug('Episode finished with signal: {} in {}s'.format(info, self.env.unwrapped.time))
             # clip rewards between -1 and 1
             reward = max(-1.0, min(reward, 1.0))
             # Store other info in replay memory
             self.replay_buffer.store_effect(last_idx, action, reward, done)
             # Resets the environment when reaching an episode boundary.
             if done:
+                self.env.print_episode_summary()
                 obs = self.env.reset()
             last_obs = obs
 
@@ -420,7 +402,7 @@ def main():
         if make_new_dir:
             os.makedirs(args.output_dir)
     log_file = os.path.join(args.output_dir, 'output.log')
-    monitor_dir = os.path.join(args.output_dir, 'monitor-outputs')
+    monitor_output_dir = os.path.join(args.output_dir, 'monitor-outputs')
 
     # configure logging
     file_handler = logging.FileHandler(log_file, mode='a')
@@ -438,7 +420,7 @@ def main():
 
     # configure environment
     env = VisualSim(reward_shaping=args.reward_shaping)
-    env = wrappers.Monitor(env, monitor_dir, force=True)
+    env = MyMonitor(env, monitor_output_dir)
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
 
@@ -471,11 +453,6 @@ def main():
             )
 
         # reinforcement learning
-        def stopping_criterion(env):
-            # notice that here t is the number of steps of the wrapped env,
-            # which is different from the number of steps in the underlying env
-            return get_wrapper_by_name(env, "Monitor").get_total_steps() >= args.num_timesteps
-
         rl_optimizer_spec = OptimizerSpec(
             constructor=optim.RMSprop,
             kwargs=dict(lr=0.00025, alpha=0.95, eps=0.01),
@@ -487,9 +464,9 @@ def main():
         trainer.reinforcement_learning(
             optimizer_spec=rl_optimizer_spec,
             exploration=exploration_schedule,
-            stopping_criterion=stopping_criterion,
             learning_starts=args.learning_starts,
-            learning_freq=4
+            learning_freq=4,
+            num_timesteps=args.num_timesteps
         )
 
 

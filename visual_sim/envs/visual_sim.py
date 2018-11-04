@@ -160,7 +160,7 @@ class VisualSim(Env):
             reward = self.collision_penalty
             done = True
             info = 'Collision'
-        elif self.time > self.max_time:
+        elif self.time >= self.max_time:
             reward = 0
             done = True
             info = 'Overtime'
@@ -224,7 +224,7 @@ class VisualSim(Env):
             while np.isnan(pose.position.x_val):
                 pose = self.client.simGetObjectPose('Human' + str(i))
                 trials += 1
-                logging.debug('Get NaN pose value. Try to call API again...')
+                # logging.debug('Get NaN pose value. Try to call API again...')
 
                 if trials >= 3:
                     logging.warning('Cannot get human status from client. Check human_num.')
