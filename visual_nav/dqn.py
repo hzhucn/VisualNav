@@ -24,7 +24,6 @@ from crowd_sim.envs.utils.action import ActionXY
 from crowd_sim.envs.policy.orca import ORCA
 from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.my_monitor import MyMonitor
-from visual_nav.utils.utils import get_wrapper_by_name
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_sim.envs.visual_sim import VisualSim
 
@@ -96,7 +95,6 @@ class Trainer(object):
                  num_test_case=20,
                  ):
         self.env = env
-        self.monitor = get_wrapper_by_name(self.env, "Monitor")
         self.batch_size = batch_size
         self.gamma = gamma
         self.frame_history_len = frame_history_len
@@ -155,7 +153,7 @@ class Trainer(object):
                 if step > demonstrate_steps:
                     break
                 else:
-                    self.env.print_episode_summary()
+                    logging.debug(self.env.get_episode_summary())
                     obs = self.env.reset()
 
             joint_state = self.env.unwrapped.compute_coordinate_observation()
@@ -200,15 +198,14 @@ class Trainer(object):
                 ob, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
 
-            self.env.print_episode_summary()
+            logging.debug(self.env.get_episode_summary())
 
-        self.env.print_episodes_summary(num_last_episodes=num_test_case)
+        logging.info(self.env.get_episodes_summary(num_last_episodes=num_test_case))
 
     def reinforcement_learning(self, optimizer_spec, exploration, learning_starts=50000,
                                learning_freq=4, num_timesteps=2000000):
         weights_file = os.path.join(self.output_dir, 'rl_model.pth')
-        statistics_file = os.path.join(self.output_dir, 'statistics.pkl')
-        tf_statistics_file = os.path.join(self.output_dir, 'statistics.json')
+        statistics_file = os.path.join(self.output_dir, 'statistics.json')
 
         if os.path.exists(weights_file):
             self.Q.load_state_dict(torch.load(weights_file))
@@ -217,9 +214,9 @@ class Trainer(object):
 
         logging.info('Start reinforcement learning')
         writer = SummaryWriter()
-        episode_starts = len(self.monitor.get_episode_rewards())
-        mean_episode_reward = -float('nan')
-        best_mean_episode_reward = -float('inf')
+        episode_starts = len(self.env.get_episode_rewards())
+        avg_reward = -float('nan')
+        best_avg_episode_reward = -float('inf')
         last_obs = self.env.reset()
 
         optimizer = optimizer_spec.constructor(self.Q.parameters(), **optimizer_spec.kwargs)
@@ -252,7 +249,7 @@ class Trainer(object):
             self.replay_buffer.store_effect(last_idx, action, reward, done)
             # Resets the environment when reaching an episode boundary.
             if done:
-                self.env.print_episode_summary()
+                logging.debug(self.env.get_episode_summary())
                 obs = self.env.reset()
             last_obs = obs
 
@@ -265,33 +262,40 @@ class Trainer(object):
                 self._td_update(optimizer)
 
             # Log progress and keep track of statistics
-            episode_rewards = self.monitor.get_episode_rewards()[episode_starts:]
-            if len(episode_rewards) > 0:
-                mean_episode_reward = np.mean(episode_rewards[-100:])
-            if len(episode_rewards) > 100:
-                best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)
+            num_last_episodes = 100
+            episode_rewards = self.env.get_episode_rewards()[episode_starts:]
+            num_episodes = len(episode_rewards)
+            if num_episodes > 0:
+                avg_reward = self.env.get_average_reward(num_last_episodes, episode_starts)
+            if num_episodes > num_last_episodes:
+                best_avg_episode_reward = max(best_avg_episode_reward, avg_reward)
+            writer.add_scalar('steps/mean_episode_rewards', avg_reward, t)
+            writer.add_scalar('steps/best_mean_episode_rewards', best_avg_episode_reward, t)
 
-            Statistic["mean_episode_rewards"].append(mean_episode_reward)
-            Statistic["best_mean_episode_rewards"].append(best_mean_episode_reward)
-            writer.add_scalar('data/mean_episode_rewards', mean_episode_reward, t)
-            writer.add_scalar('data/best_mean_episode_rewards', best_mean_episode_reward, t)
+            if num_episodes > 50:
+                success_rate = self.env.get_success_rate(num_last_episodes, episode_starts)
+                collision_rate = self.env.get_collision_rate(num_last_episodes, episode_starts)
+                overtime_rate = self.env.get_overtime_rate(num_last_episodes, episode_starts)
+                avg_time = self.env.get_average_time(num_last_episodes, episode_starts)
+                writer.add_scalar('episodes/success_rate', success_rate, num_episodes)
+                writer.add_scalar('episodes/collision_rate', collision_rate, num_episodes)
+                writer.add_scalar('episodes/overtime_rate', overtime_rate, num_episodes)
+                writer.add_scalar('episodes/mean_episode_time', avg_time, num_episodes)
 
             if t % self.log_every_n_steps == 0 and t > learning_starts:
                 logging.info("Timestep %d" % (t,))
-                logging.info("mean reward (100 episodes) %f" % mean_episode_reward)
-                logging.info("best mean reward %f" % best_mean_episode_reward)
-                logging.info("episodes %d" % len(episode_rewards))
+                logging.info("mean reward (100 episodes) %f" % avg_reward)
+                logging.info("best mean reward %f" % best_avg_episode_reward)
+                logging.info("episodes %d" % num_episodes)
                 logging.info("exploration %f" % exploration.value(t))
                 sys.stdout.flush()
 
-                # Dump statistics to pickle
-                with open(statistics_file, 'wb') as f:
-                    pickle.dump(Statistic, f)
-                    logging.info("Saved to %s" % statistics_file)
+                # Dump statistics to json file
+                writer.export_scalars_to_json(statistics_file)
+                logging.info("Saved to %s" % statistics_file)
 
                 torch.save(self.Q.state_dict(), weights_file)
 
-        writer.export_scalars_to_json(tf_statistics_file)
         writer.close()
 
     def _select_epsilon_greedy_action(self, model, obs, eps_threshold):

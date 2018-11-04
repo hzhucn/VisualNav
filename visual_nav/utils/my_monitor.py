@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 from gym.wrappers.monitor import Monitor
 
 
@@ -24,18 +25,33 @@ class MyMonitor(Monitor):
 
         return observation, reward, done, info
 
-    def print_episodes_summary(self, num_last_episodes):
-        success_rate = sum(self.successes[-num_last_episodes:]) / num_last_episodes
-        collision_rate = sum(self.collisions[-num_last_episodes:]) / num_last_episodes
-        overtime_rates = sum(self.overtimes[-num_last_episodes:]) / num_last_episodes
-        avg_time = sum(self.stats_recorder.episode_lengths[-num_last_episodes:]) / num_last_episodes * self.time_step
-        avg_rewards = sum(self.stats_recorder.episode_rewards[-num_last_episodes:]) / num_last_episodes
+    def get_success_rate(self, num_last_episodes, episode_starts=0):
+        return np.mean(self.successes[episode_starts:][-num_last_episodes:])
 
-        logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, avg steps: {:.2f}s, avg reward: {:.4f}'.
-                     format(success_rate, collision_rate, overtime_rates, avg_time, avg_rewards))
+    def get_collision_rate(self, num_last_episodes, episode_starts=0):
+        return np.mean(self.collisions[episode_starts:][-num_last_episodes:])
 
-    def print_episode_summary(self):
-        logging.info('Episode finished in {}s with total reward {:.4f} and end signal {}'.
-                     format(self.stats_recorder.episode_lengths[-1] * self.time_step,
-                            self.stats_recorder.episode_rewards[-1], self.last_done_info))
+    def get_overtime_rate(self, num_last_episodes, episode_starts=0):
+        return np.mean(self.overtimes[episode_starts:][-num_last_episodes:])
+
+    def get_average_time(self, num_last_episodes, episode_starts=0):
+        return np.mean(self.stats_recorder.episode_lengths[episode_starts:][-num_last_episodes:]) * self.time_step
+
+    def get_average_reward(self, num_last_episodes, episode_starts=0):
+        return np.mean(self.stats_recorder.episode_rewards[episode_starts:][-num_last_episodes:])
+
+    def get_episodes_summary(self, num_last_episodes):
+        success_rate = self.get_success_rate(num_last_episodes)
+        collision_rate = self.get_collision_rate(num_last_episodes)
+        overtime_rates = self.get_overtime_rate(num_last_episodes)
+        avg_time = self.get_average_time(num_last_episodes)
+        avg_reward = self.get_average_reward(num_last_episodes)
+
+        return 'Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, avg steps: {:.2f}s, avg reward: {:.4f}'.\
+            format(success_rate, collision_rate, overtime_rates, avg_time, avg_reward)
+
+    def get_episode_summary(self, ):
+        return 'Episode finished in {}s with total reward {:.4f} and end signal {}'.\
+                 format(self.stats_recorder.episode_lengths[-1] * self.time_step,
+                        self.stats_recorder.episode_rewards[-1], self.last_done_info)
 
