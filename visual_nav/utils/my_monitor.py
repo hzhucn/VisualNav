@@ -1,11 +1,13 @@
 import logging
 import numpy as np
 from gym.wrappers.monitor import Monitor
+import matplotlib.pyplot as plt
 
 
 class MyMonitor(Monitor):
-    def __init__(self, env, directory):
-        super().__init__(env, directory)
+    def __init__(self, env, directory, debug=False):
+        super().__init__(env, directory, resume=True)
+        self.debug = debug
         self.time_step = env.time_step
         self.successes = list()
         self.collisions = list()
@@ -22,6 +24,11 @@ class MyMonitor(Monitor):
             self.collisions.append(1 if info == 'Collision' else 0)
             self.overtimes.append(1 if info == 'Overtime' else 0)
             self.last_done_info = info
+
+        if self.debug:
+            # print(observation)
+            plt.imshow(observation.image[:, :, 0], cmap='gray')
+            plt.show()
 
         return observation, reward, done, info
 

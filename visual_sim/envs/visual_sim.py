@@ -49,12 +49,12 @@ class VisualSim(Env):
         self.clock_speed = 10
         self.time = 0
         self.initial_position = np.array((0, 0, -1))
-        self.goal_position = np.array((10, 0, -1))
+        self.goal_position = np.array((6, 0, -1))
 
         # rewards
         self.collision_penalty = -1
         self.success_reward = 1
-        self.max_time = 30
+        self.max_time = 25
         self.reward_shaping = reward_shaping
         self.reward_per_meter = 0.1
 
@@ -77,7 +77,7 @@ class VisualSim(Env):
 
         # observation_space
         self.image_type = image_type
-        self.observation_space = Box(low=0, high=255, shape=(144, 256, ImageInfo[image_type].channel_size))
+        self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
 
         if self.robot_dynamics:
             client = airsim.CarClient()
@@ -138,10 +138,8 @@ class VisualSim(Env):
             self._move((x, y, self.initial_position[2]), yaw)
             if self.blocking:
                 self.client.simContinueForTime(self.time_step / self.clock_speed)
-                # start = time.time()
                 while not self.client.simIsPause():
                     time.sleep(0.001)
-                # logging.debug('{:.2f}s past'.format(time.time() - start))
         self.time += self.time_step
         self._update_states()
 

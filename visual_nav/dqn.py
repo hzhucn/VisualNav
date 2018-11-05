@@ -45,7 +45,7 @@ Statistic = {
 
 
 class DQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18, downsample_image=False):
+    def __init__(self, in_channels=4, num_actions=18):
         """
         Initialize a deep Q-learning network as described in
         https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
@@ -57,12 +57,8 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        if downsample_image:
-            self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-            self.fc4 = nn.Linear(7 * 7 * 64, 512)
-        else:
-            self.conv3 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
-            self.fc4 = nn.Linear(7 * 14 * 64, 512)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.fc4 = nn.Linear(7 * 7 * 64, 512)
         self.fc5 = nn.Linear(520, num_actions)
 
     def forward(self, frames, goals):
@@ -88,10 +84,9 @@ class Trainer(object):
                  output_dir,
                  replay_buffer_size=1000000,
                  batch_size=128,
-                 gamma=0.99,
+                 gamma=0.9,
                  frame_history_len=4,
                  target_update_freq=10000,
-                 downsample_image=False,
                  num_test_case=20,
                  ):
         self.env = env
@@ -105,13 +100,10 @@ class Trainer(object):
         img_h, img_w, img_c = env.observation_space.shape
         input_arg = frame_history_len * img_c
         self.num_actions = env.action_space.n
-        if downsample_image:
-            self.image_size = (84, 84, img_c, downsample_image)
-        else:
-            self.image_size = (img_h, img_w, img_c, downsample_image)
+        self.image_size = (img_h, img_w, img_c)
 
-        self.Q = q_func(input_arg, self.num_actions, downsample_image).type(dtype)
-        self.target_Q = q_func(input_arg, self.num_actions, downsample_image).type(dtype)
+        self.Q = q_func(input_arg, self.num_actions).type(dtype)
+        self.target_Q = q_func(input_arg, self.num_actions).type(dtype)
         self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len, self.image_size)
 
         self.log_every_n_steps = 10000
@@ -153,7 +145,7 @@ class Trainer(object):
                 if step > demonstrate_steps:
                     break
                 else:
-                    logging.debug(self.env.get_episode_summary())
+                    logging.info(self.env.get_episode_summary())
                     obs = self.env.reset()
 
             joint_state = self.env.unwrapped.compute_coordinate_observation()
@@ -198,7 +190,7 @@ class Trainer(object):
                 ob, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
 
-            logging.debug(self.env.get_episode_summary())
+            logging.info(self.env.get_episode_summary())
 
         logging.info(self.env.get_episodes_summary(num_last_episodes=num_test_case))
 
@@ -253,7 +245,7 @@ class Trainer(object):
             self.replay_buffer.store_effect(last_idx, action, reward, done)
             # Resets the environment when reaching an episode boundary.
             if done:
-                logging.debug(self.env.get_episode_summary())
+                logging.info(self.env.get_episode_summary())
                 obs = self.env.reset()
             last_obs = obs
 
@@ -384,11 +376,10 @@ def main():
     parser.add_argument('--eps_start', type=float, default=1)
     parser.add_argument('--eps_end', type=float, default=0.1)
     parser.add_argument('--eps_decay_steps', type=int, default=1000000)
-    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--gamma', type=float, default=0.9)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_timesteps', type=int, default=2000000)
     parser.add_argument('--learning_starts', type=int, default=50000)
-    parser.add_argument('--downsample_image', default=False, action='store_true')
     parser.add_argument('--reward_shaping', default=False, action='store_true')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=20)
@@ -427,7 +418,7 @@ def main():
 
     # configure environment
     env = VisualSim(reward_shaping=args.reward_shaping)
-    env = MyMonitor(env, monitor_output_dir)
+    env = MyMonitor(env, monitor_output_dir, args.debug)
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
 
@@ -440,7 +431,6 @@ def main():
         gamma=args.gamma,
         frame_history_len=4,
         target_update_freq=10000,
-        downsample_image=args.downsample_image,
         num_test_case=args.num_test_case
     )
 
@@ -465,7 +455,8 @@ def main():
             kwargs=dict(lr=0.00025, alpha=0.95, eps=0.01),
         )
         if args.eps_decay_steps == 0:
-            exploration_schedule = ConstantSchedule(0.1)
+            exploration_schedule = ConstantSchedule(args.eps_end)
+            logging.info('Use constant exploration rate: {}'.format(args.eps_end))
         else:
             exploration_schedule = LinearSchedule(args.eps_decay_steps, args.eps_end, args.eps_start)
         trainer.reinforcement_learning(
