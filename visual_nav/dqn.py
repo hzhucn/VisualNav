@@ -245,7 +245,7 @@ class Trainer(object):
             self.replay_buffer.store_effect(last_idx, action, reward, done)
             # Resets the environment when reaching an episode boundary.
             if done:
-                logging.info(self.env.get_episode_summary() + 'in step {}'.format(t))
+                logging.info(self.env.get_episode_summary() + ' in step {}'.format(t))
                 obs = self.env.reset()
             last_obs = obs
 
@@ -381,6 +381,7 @@ def main():
     parser.add_argument('--num_timesteps', type=int, default=2000000)
     parser.add_argument('--learning_starts', type=int, default=50000)
     parser.add_argument('--reward_shaping', default=False, action='store_true')
+    parser.add_argument('--curriculum_learning', default=False, action='store_true')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=20)
     args = parser.parse_args()
@@ -417,7 +418,7 @@ def main():
     pp.pprint(vars(args))
 
     # configure environment
-    env = VisualSim(reward_shaping=args.reward_shaping)
+    env = VisualSim(reward_shaping=args.reward_shaping, curriculum_learning=args.curriculum_learning)
     env = MyMonitor(env, monitor_output_dir, args.debug)
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete

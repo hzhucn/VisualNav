@@ -42,7 +42,7 @@ class VisualSim(Env):
       SurfaceNormals = 6,
       Infrared = 7
     """
-    def __init__(self, image_type='DepthPerspective', reward_shaping=False):
+    def __init__(self, image_type='DepthPerspective', reward_shaping=False, curriculum_learning=False):
         self.robot_dynamics = False
         self.blocking = True
         self.time_step = 0.25
@@ -56,6 +56,7 @@ class VisualSim(Env):
         self.success_reward = 1
         self.max_time = 40
         self.reward_shaping = reward_shaping
+        self.curriculum_learning = curriculum_learning
         self.reward_per_meter = 0.1
 
         # human
@@ -93,6 +94,9 @@ class VisualSim(Env):
         self.time = 0
         self.human_states = defaultdict(list)
         self.robot_states = list()
+
+        if self.curriculum_learning:
+            self.goal_position = np.array((np.random.uniform(2, 4), 0, -1))
 
         if self.robot_dynamics:
             self.client.reset()
