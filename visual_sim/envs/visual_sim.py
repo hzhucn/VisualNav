@@ -1,17 +1,16 @@
 import itertools
+import logging
 from collections import defaultdict
 from collections import namedtuple
-import logging
-from PIL import Image
 
+import airsim
 import numpy as np
-from numpy.linalg import norm
+from PIL import Image
+from crowd_sim.envs.utils.action import ActionXY, ActionRot
+from crowd_sim.envs.utils.state import ObservableState, FullState, JointState
 from gym import Env
 from gym.spaces import Discrete, Box
-import airsim
-from crowd_sim.envs.utils.state import ObservableState, FullState, JointState
-from crowd_sim.envs.utils.action import ActionXY, ActionRot
-
+from numpy.linalg import norm
 
 Goal = namedtuple('Goal', ['r', 'phi'])
 Observation = namedtuple('Observation', ['image', 'goal'])
@@ -49,7 +48,8 @@ class VisualSim(Env):
         self.clock_speed = 10
         self.time = 0
         self.initial_position = np.array((0, 0, -1))
-        self.goal_position = np.array((6, 0, -1))
+        self.goal_distance = 6
+        self.goal_position = np.array((self.goal_distance, 0, -1))
 
         # rewards
         self.collision_penalty = -0.25
@@ -57,7 +57,7 @@ class VisualSim(Env):
         self.max_time = 40
         self.reward_shaping = reward_shaping
         self.curriculum_learning = curriculum_learning
-        self.reward_per_meter = 0.1
+        self.early_reward_ratio = 0.5
 
         # human
         self.human_num = 2
@@ -96,7 +96,8 @@ class VisualSim(Env):
         self.robot_states = list()
 
         if self.curriculum_learning:
-            self.goal_position = np.array((np.random.uniform(2, 4), 0, -1))
+            self.goal_distance = np.random.uniform(2, 4)
+            self.goal_position = np.array((self.goal_distance, 0, -1))
 
         if self.robot_dynamics:
             self.client.reset()
@@ -151,10 +152,10 @@ class VisualSim(Env):
         current_pose = self.client.simGetVehiclePose()
         if not (np.isclose(current_pose.position.x_val, x) and np.isclose(current_pose.position.y_val, y)):
             logging.debug('Different pose values between simGetVehiclePose and simSetVehiclePose!!!')
-        reached_goal = self._distance_to_goal(current_pose.position) < self.robot_radius
+        dg = self._distance_to_goal(current_pose.position)
         collision_info = self.client.simGetCollisionInfo()
 
-        if reached_goal:
+        if dg < self.robot_radius:
             reward = self.success_reward
             done = True
             info = 'Accomplishment'
@@ -168,13 +169,15 @@ class VisualSim(Env):
             info = 'Overtime'
         else:
             if self.reward_shaping:
+                # early reward
+                early_reward_range = self.goal_distance * self.early_reward_ratio
                 heading_angle = np.arctan2(current_pose.position.y_val - past_pose.position.y_val,
                                            current_pose.position.x_val - past_pose.position.x_val)
                 goal_angle = np.arctan2(self.goal_position[1] - past_pose.position.y_val,
                                         self.goal_position[0] - past_pose.position.x_val)
-                dist = norm(vector2array(current_pose.position) - vector2array(past_pose.position))
-                projected_dist = np.cos(heading_angle - goal_angle) * dist
-                reward = self.reward_per_meter * projected_dist
+                if np.cos(heading_angle - goal_angle) > 0:
+                    reward = max(0, min(1, (early_reward_range - dg) / (early_reward_range - self.robot_radius))) \
+                             * self.success_reward
             else:
                 reward = 0
             done = False
