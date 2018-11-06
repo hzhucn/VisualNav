@@ -20,7 +20,8 @@ def test():
     collision = 0
     overtime = 0
     time = []
-    for i in range(env.test_case_num):
+    test_case_num = 10
+    for i in range(test_case_num):
         ob = env.reset()
         joint_state = env.compute_coordinate_observation()
         done = False
@@ -43,7 +44,7 @@ def test():
 
     avg_time = sum(time) / len(time) if time else 0
     logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, average time: {:.2f}s'.format(
-        success/env.test_case_num, collision/env.test_case_num, overtime/env.test_case_num, avg_time))
+        success/test_case_num, collision/test_case_num, overtime/test_case_num, avg_time))
 
 
 if __name__ == '__main__':

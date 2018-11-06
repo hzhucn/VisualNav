@@ -245,7 +245,7 @@ class Trainer(object):
             self.replay_buffer.store_effect(last_idx, action, reward, done)
             # Resets the environment when reaching an episode boundary.
             if done:
-                logging.info(self.env.get_episode_summary())
+                logging.info(self.env.get_episode_summary() + 'in step {}'.format(t))
                 obs = self.env.reset()
             last_obs = obs
 
@@ -372,11 +372,11 @@ def main():
     parser = argparse.ArgumentParser('Parse configuration file')
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
-    parser.add_argument('--without_il', default=False, action='store_true')
+    parser.add_argument('--with_il', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)
     parser.add_argument('--eps_end', type=float, default=0.1)
     parser.add_argument('--eps_decay_steps', type=int, default=1000000)
-    parser.add_argument('--gamma', type=float, default=0.9)
+    parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_timesteps', type=int, default=2000000)
     parser.add_argument('--learning_starts', type=int, default=50000)
@@ -442,7 +442,7 @@ def main():
             constructor=optim.RMSprop,
             kwargs=dict(lr=0.01, alpha=0.95, eps=0.01),
         )
-        if not args.without_il:
+        if args.with_il:
             trainer.imitation_learning(
                 optimizer_spec=il_optimizer_spec,
                 demonstrate_steps=50000,

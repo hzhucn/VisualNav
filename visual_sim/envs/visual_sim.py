@@ -52,9 +52,9 @@ class VisualSim(Env):
         self.goal_position = np.array((6, 0, -1))
 
         # rewards
-        self.collision_penalty = -1
+        self.collision_penalty = -0.25
         self.success_reward = 1
-        self.max_time = 25
+        self.max_time = 40
         self.reward_shaping = reward_shaping
         self.reward_per_meter = 0.1
 
@@ -71,7 +71,7 @@ class VisualSim(Env):
 
         # action space
         self.speed_samples = 3
-        self.rotation_samples = 7
+        self.rotation_samples = 5
         self.actions = self._build_action_space()
         self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
 
