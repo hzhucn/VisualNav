@@ -193,10 +193,10 @@ class ReplayBuffer(object):
 
         if self.frames is None:
             self.frames = np.empty([self.size] + list(frame.shape), dtype=np.uint8)
-            self.goals = np.empty([self.size, 2], dtype=np.uint8)
-            self.action = np.empty([self.size], dtype=np.int32)
+            self.goals = np.empty([self.size, 2], dtype=np.float32)
+            self.action = np.empty([self.size], dtype=np.float32)
             self.reward = np.empty([self.size], dtype=np.float32)
-            self.done = np.empty([self.size], dtype=np.bool)
+            self.done = np.empty([self.size], dtype=np.float32)
 
         self.frames[self.next_idx] = frame
         self.goals[self.next_idx] = np.array(goal)
@@ -213,7 +213,7 @@ class ReplayBuffer(object):
         up into two functions is so that one can call `encode_recent_observation`
         in between.
 
-        Paramters
+        Parameters
         ---------
         idx: int
             Index in buffer of recently observed frame (returned by `store_frame`).

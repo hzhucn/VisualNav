@@ -28,20 +28,12 @@ from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_sim.envs.visual_sim import VisualSim
 
 
-USE_CUDA = torch.cuda.is_available()
-dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
-
 """
     OptimizerSpec containing following attributes
         constructor: The optimizer constructor ex: RMSprop
         kwargs: {Dict} arguments for constructing optimizer
 """
 OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
-
-Statistic = {
-    "mean_episode_rewards": [],
-    "best_mean_episode_rewards": []
-}
 
 
 class DQN(nn.Module):
@@ -70,17 +62,11 @@ class DQN(nn.Module):
         return self.fc5(features)
 
 
-class Variable(autograd.Variable):
-    def __init__(self, data, *args, **kwargs):
-        if USE_CUDA:
-            data = data.cuda()
-        super(Variable, self).__init__(data, *args, **kwargs)
-
-
 class Trainer(object):
     def __init__(self,
                  env,
                  q_func,
+                 device,
                  output_dir,
                  replay_buffer_size=1000000,
                  batch_size=128,
@@ -90,6 +76,7 @@ class Trainer(object):
                  num_test_case=20,
                  ):
         self.env = env
+        self.device = device
         self.batch_size = batch_size
         self.gamma = gamma
         self.frame_history_len = frame_history_len
@@ -102,8 +89,8 @@ class Trainer(object):
         self.num_actions = env.action_space.n
         self.image_size = (img_h, img_w, img_c)
 
-        self.Q = q_func(input_arg, self.num_actions).type(dtype)
-        self.target_Q = q_func(input_arg, self.num_actions).type(dtype)
+        self.Q = q_func(input_arg, self.num_actions).to(device)
+        self.target_Q = q_func(input_arg, self.num_actions).to(device)
         self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len, self.image_size)
 
         self.log_every_n_steps = 10000
@@ -296,17 +283,17 @@ class Trainer(object):
     def _select_epsilon_greedy_action(self, model, obs, eps_threshold):
         sample = random.random()
         if sample > eps_threshold:
-            frames = torch.from_numpy(obs[0]).type(dtype).unsqueeze(0) / 255.0
-            goals = torch.from_numpy(obs[1]).type(dtype).unsqueeze(0)
+            frames = torch.from_numpy(obs[0]).unsqueeze(0) / 255.0
+            goals = torch.from_numpy(obs[1]).unsqueeze(0)
             # Use volatile = True if variable is only used in inference mode, i.e. don’t save the history
-            return model(Variable(frames), Variable(goals)).data.max(1)[1].cpu()
+            return model(frames, goals).data.max(1)[1].cpu()
         else:
             return torch.IntTensor([random.randrange(self.num_actions)])
 
     def act(self, obs):
-        frames = torch.from_numpy(obs[0]).type(dtype).unsqueeze(0) / 255.0
-        goals = torch.from_numpy(np.array(obs[1])).type(dtype).unsqueeze(0)
-        return self.Q(Variable(frames), Variable(goals)).data.max(1)[1].cpu()
+        frames = torch.from_numpy(obs[0]).unsqueeze(0) / 255.0
+        goals = torch.from_numpy(np.array(obs[1])).unsqueeze(0)
+        return self.Q(frames, goals).data.max(1)[1].cpu()
 
     def _td_update(self, optimizer):
         # Use the replay buffer to sample a batch of transitions
@@ -316,17 +303,13 @@ class Trainer(object):
         frames_batch, goals_batch, action_batch, reward_batch, next_frames_batch, next_goals_batch, done_mask = \
             self.replay_buffer.sample(self.batch_size)
         # Convert numpy nd_array to torch variables for calculation
-        frames_batch = Variable(torch.from_numpy(frames_batch).type(dtype) / 255.0)
-        goals_batch = Variable(torch.from_numpy(goals_batch).type(dtype))
-        action_batch = Variable(torch.from_numpy(action_batch).long())
-        reward_batch = Variable(torch.from_numpy(reward_batch))
-        next_frames_batch = Variable(torch.from_numpy(next_frames_batch).type(dtype) / 255.0)
-        next_goals_batch = Variable(torch.from_numpy(next_goals_batch).type(dtype))
-        not_done_mask = Variable(torch.from_numpy(1 - done_mask)).type(dtype)
-
-        if USE_CUDA:
-            action_batch = action_batch.cuda()
-            reward_batch = reward_batch.cuda()
+        frames_batch = torch.from_numpy(frames_batch).float().to(self.device) / 255.0
+        goals_batch = torch.from_numpy(goals_batch).to(self.device)
+        action_batch = torch.from_numpy(action_batch).long().to(self.device)
+        reward_batch = torch.from_numpy(reward_batch).to(self.device)
+        next_frames_batch = torch.from_numpy(next_frames_batch).float().to(self.device) / 255.0
+        next_goals_batch = torch.from_numpy(next_goals_batch).to(self.device)
+        not_done_mask = torch.from_numpy(1 - done_mask).to(self.device)
 
         # Compute current Q value, q_func takes only state and output value for every state-action pair
         # We choose Q based on action taken, action is used to index the value in the dqn output
@@ -365,6 +348,9 @@ class Trainer(object):
             self.target_Q.load_state_dict(self.Q.state_dict())
 
     def _mc_update(self):
+        pass
+
+    def _action_classification(self, optimizer):
         pass
 
 
@@ -426,6 +412,7 @@ def main():
     trainer = Trainer(
         env=env,
         q_func=DQN,
+        device=device,
         output_dir=args.output_dir,
         replay_buffer_size=100000,
         batch_size=args.batch_size,

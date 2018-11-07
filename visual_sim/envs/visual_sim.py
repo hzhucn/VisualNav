@@ -168,6 +168,7 @@ class VisualSim(Env):
             done = True
             info = 'Overtime'
         else:
+            reward = 0
             if self.reward_shaping:
                 # early reward
                 early_reward_range = self.goal_distance * self.early_reward_ratio
@@ -178,8 +179,6 @@ class VisualSim(Env):
                 if np.cos(heading_angle - goal_angle) > 0:
                     reward = max(0, min(1, (early_reward_range - dg) / (early_reward_range - self.robot_radius))) \
                              * self.success_reward
-            else:
-                reward = 0
             done = False
             info = ''
 
@@ -214,8 +213,10 @@ class VisualSim(Env):
         # retrieve poses for both human and robot
         pose = self.client.simGetVehiclePose()
         r = self._distance_to_goal(pose.position)
-        phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val)
+        yaw = airsim.to_eularian_angles(pose.orientation)[2]
+        phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val) - yaw
         goal = Goal(r, phi)
+        logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, phi))
 
         observation = Observation(image, goal)
 
