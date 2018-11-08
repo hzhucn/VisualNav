@@ -158,7 +158,7 @@ class VisualSim(Env):
         if dg < self.robot_radius:
             reward = self.success_reward
             done = True
-            info = 'Accomplishment'
+            info = 'Success'
         elif collision_info.has_collided:
             reward = self.collision_penalty
             done = True
@@ -216,7 +216,7 @@ class VisualSim(Env):
         yaw = airsim.to_eularian_angles(pose.orientation)[2]
         phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val) - yaw
         goal = Goal(r, phi)
-        logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, phi / np.pi * 180))
+        logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, np.rad2deg(phi)))
 
         observation = Observation(image, goal)
 

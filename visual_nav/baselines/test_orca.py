@@ -32,7 +32,7 @@ def test():
             # plt.imshow(ob[0], cmap='gray')
             # plt.show()
             joint_state = env.compute_coordinate_observation()
-            if info == 'Accomplishment':
+            if info == 'Success':
                 success += 1
                 time.append(env.time)
             elif info == 'Collision':

@@ -37,7 +37,7 @@ def test():
             action = policy.predict(joint_state)
             ob, reward, done, info = env.step(action)
             joint_state = env.compute_coordinate_observation()
-            if info == 'Accomplishment':
+            if info == 'Success':
                 success += 1
                 time.append(env.time)
             elif info == 'Collision':

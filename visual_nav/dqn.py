@@ -1,5 +1,4 @@
 import sys
-import pickle
 from collections import namedtuple
 from itertools import count
 import random
@@ -8,13 +7,13 @@ import os
 import argparse
 import shutil
 import pprint
+import pickle
 
 import git
 import gym
 import gym.spaces
 import numpy as np
 import torch
-import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -34,6 +33,7 @@ from visual_sim.envs.visual_sim import VisualSim
         kwargs: {Dict} arguments for constructing optimizer
 """
 OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
+STEPDEBUG = False
 
 
 class DQN(nn.Module):
@@ -96,7 +96,8 @@ class Trainer(object):
 
         self.log_every_n_steps = 10000
         self.num_param_updates = 0
-        self.actions = None
+        self.actions = [ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r))
+                        for action in self.env.unwrapped.actions]
 
     def imitation_learning(self, optimizer_spec, update='td'):
         """
@@ -145,8 +146,8 @@ class Trainer(object):
             for _ in range(num_train_batch):
                 self._td_update(optimizer)
         elif update == 'mc':
-            num_episodes = 2000
-            num_train_batch = 10000
+            num_episodes = 1000
+            num_train_batch = num_episodes * 100
             criterion = nn.MSELoss().to(self.device)
             optimizer = optim.Adam(self.Q.parameters(), lr=0.001)
 
@@ -191,10 +192,6 @@ class Trainer(object):
     def _translate_action(self, demonstration):
         """ Translate demonstration action into target action category"""
         assert isinstance(demonstration, ActionXY)
-        if self.actions is None:
-            actions = self.env.unwrapped.actions
-            self.actions = [ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r)) for action in actions]
-
         min_diff = float('inf')
         index = -1
         for i, action in enumerate(self.actions):
@@ -209,20 +206,22 @@ class Trainer(object):
         logging.info('Start testing model')
         replay_buffer = ReplayBuffer(100000, self.frame_history_len, self.image_size)
 
-        num_test_case = self.num_test_case
-        for i in range(num_test_case):
+        for i in range(self.num_test_case):
             obs = self.env.reset()
             done = False
             while not done:
                 last_idx = replay_buffer.store_observation(obs)
                 recent_observations = replay_buffer.encode_recent_observation()
                 action = self.act(recent_observations)
-                ob, reward, done, info = self.env.step(action.item())
+                obs, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
+
+                action_rot = self.env.unwrapped.actions[action.item()]
+                logging.debug('Action velocity: {:.2f}, rotation: {:.2f}'.format(action_rot[0], np.rad2deg(action_rot[1])))
 
             logging.info(self.env.get_episode_summary())
 
-        logging.info(self.env.get_episodes_summary(num_last_episodes=num_test_case))
+        logging.info(self.env.get_episodes_summary(num_last_episodes=self.num_test_case))
 
     def reinforcement_learning(self, optimizer_spec, exploration, learning_starts=50000,
                                learning_freq=4, num_timesteps=2000000):
@@ -431,6 +430,7 @@ def main():
     parser.add_argument('--curriculum_learning', default=False, action='store_true')
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=50)
+    parser.add_argument('--show_image', default=False, action='store_true')
     args = parser.parse_args()
 
     if args.test:
@@ -466,7 +466,7 @@ def main():
 
     # configure environment
     env = VisualSim(reward_shaping=args.reward_shaping, curriculum_learning=args.curriculum_learning)
-    env = MyMonitor(env, monitor_output_dir, args.debug)
+    env = MyMonitor(env, monitor_output_dir, args.show_image)
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
 
