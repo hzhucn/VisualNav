@@ -1,5 +1,7 @@
 import logging
 import configparser
+import os
+
 import torch
 import gym
 from visual_sim.envs.visual_sim import VisualSim
@@ -14,12 +16,14 @@ def test():
     env = VisualSim()
 
     # configure SARL
+    model_dir = 'crowdnav_data/orca_square_20p_nearest_10p_invisible/sarl_without_global_state'
+    assert os.path.exists(model_dir)
     policy = SARL()
     policy.epsilon = 0
     policy_config = configparser.RawConfigParser()
-    policy_config.read('data/sarl/policy.config')
+    policy_config.read(os.path.join(model_dir, 'policy.config'))
     policy.configure(policy_config)
-    policy.model.load_state_dict(torch.load('data/sarl/rl_model.pth'))
+    policy.model.load_state_dict(torch.load(os.path.join(model_dir, 'rl_model.pth')))
 
     policy.set_device(torch.device('cpu'))
     policy.set_phase('test')
@@ -29,7 +33,8 @@ def test():
     collision = 0
     overtime = 0
     time = []
-    for i in range(env.test_case_num):
+    num_test_case = 10
+    for i in range(num_test_case):
         ob = env.reset()
         joint_state = env.compute_coordinate_observation()
         done = False
@@ -49,7 +54,7 @@ def test():
 
     avg_time = sum(time) / len(time) if time else 0
     logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, average time: {:.2f}s'.format(
-        success/env.test_case_num, collision/env.test_case_num, overtime/env.test_case_num, avg_time))
+        success/num_test_case, collision/num_test_case, overtime/num_test_case, avg_time))
 
 
 if __name__ == '__main__':

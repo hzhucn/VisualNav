@@ -6,3 +6,4 @@ PythonClient/
 data/
 .ipynb_checkpoints/
 runs/
+crowdnav_data

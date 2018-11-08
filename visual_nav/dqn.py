@@ -7,7 +7,7 @@ import os
 import argparse
 import shutil
 import pprint
-import pickle
+import configparser
 
 import git
 import gym
@@ -19,8 +19,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 
-from crowd_sim.envs.utils.action import ActionXY
+from crowd_sim.envs.utils.action import ActionXY, ActionRot
 from crowd_sim.envs.policy.orca import ORCA
+from crowd_nav.policy.sarl import SARL
 from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.my_monitor import MyMonitor
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
@@ -96,8 +97,9 @@ class Trainer(object):
 
         self.log_every_n_steps = 10000
         self.num_param_updates = 0
-        self.actions = [ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r))
-                        for action in self.env.unwrapped.actions]
+        # map action_rot to its index and action_xy
+        self.action_dict = {action: (i, ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r)))
+                            for i, action in enumerate(self.env.unwrapped.actions)}
 
     def imitation_learning(self, optimizer_spec, update='td'):
         """
@@ -114,10 +116,18 @@ class Trainer(object):
 
         logging.info('Start imitation learning')
         # TODO: use 2D RL as demonstrator
-        demonstrator = ORCA()
-        demonstrator.set_device(torch.device('cpu'))
-        demonstrator.set_phase('test')
-        demonstrator.time_step = self.time_step
+        model_dir = 'data/sarl'
+        assert os.path.exists(model_dir)
+        policy = SARL()
+        policy.epsilon = 0
+        policy_config = configparser.RawConfigParser()
+        policy_config.read(os.path.join(model_dir, 'policy.config'))
+        policy.configure(policy_config)
+        policy.model.load_state_dict(torch.load(os.path.join(model_dir, 'rl_model.pth')))
+
+        policy.set_device(torch.device('cpu'))
+        policy.set_phase('test')
+        policy.time_step = self.time_step
 
         if update == 'td':
             demonstrate_steps = 50000
@@ -128,8 +138,8 @@ class Trainer(object):
             joint_state = self.env.unwrapped.compute_coordinate_observation()
             for step in count():
                 last_idx = self.replay_buffer.store_observation(obs)
-                action_rot = demonstrator.predict(joint_state)
-                action_xy, index = self._translate_action(action_rot)
+                demonstration = policy.predict(joint_state)
+                action_rot, index = self._approximate_action(demonstration)
                 obs, reward, done, info = self.env.step(action_rot)
                 self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
 
@@ -160,8 +170,8 @@ class Trainer(object):
                 rewards = []
                 while not done:
                     last_idx = self.replay_buffer.store_observation(obs)
-                    action_rot = demonstrator.predict(joint_state)
-                    action_xy, index = self._translate_action(action_rot)
+                    action_xy = policy.predict(joint_state)
+                    action_rot, index = self._approximate_action(action_xy)
                     obs, reward, done, info = self.env.step(action_rot)
                     self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
                     indices.append(last_idx)
@@ -189,18 +199,23 @@ class Trainer(object):
 
         self.test()
 
-    def _translate_action(self, demonstration):
-        """ Translate demonstration action into target action category"""
-        assert isinstance(demonstration, ActionXY)
+    def _approximate_action(self, demonstration):
+        """ Approximate demonstration action with closest target action"""
         min_diff = float('inf')
+        target_action = None
         index = -1
-        for i, action in enumerate(self.actions):
-            diff = np.linalg.norm(np.array(action) - np.array(demonstration))
+        for action_rot, value in self.action_dict.items():
+            i, action_xy = value
+            if isinstance(demonstration, ActionXY):
+                diff = np.linalg.norm(np.array(action_xy) - np.array(demonstration))
+            else:
+                diff = np.linalg.norm(np.array(action_rot) - np.array(demonstration))
             if diff < min_diff:
                 min_diff = diff
+                target_action = action_rot
                 index = i
 
-        return self.actions[index], index
+        return target_action, index
 
     def test(self):
         logging.info('Start testing model')
