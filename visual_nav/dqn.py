@@ -73,7 +73,7 @@ class Trainer(object):
                  gamma=0.9,
                  frame_history_len=4,
                  target_update_freq=10000,
-                 num_test_case=20,
+                 num_test_case=100,
                  ):
         self.env = env
         self.device = device
@@ -88,6 +88,7 @@ class Trainer(object):
         input_arg = frame_history_len * img_c
         self.num_actions = env.action_space.n
         self.image_size = (img_h, img_w, img_c)
+        self.time_step = env.unwrapped.time_step
 
         self.Q = q_func(input_arg, self.num_actions).to(device)
         self.target_Q = q_func(input_arg, self.num_actions).to(device)
@@ -97,7 +98,7 @@ class Trainer(object):
         self.num_param_updates = 0
         self.actions = None
 
-    def imitation_learning(self, optimizer_spec, demonstrate_steps=50000, update_steps=10000):
+    def imitation_learning(self, optimizer_spec, demonstrate_steps=50000, update_steps=1000000):
         """
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
@@ -117,7 +118,7 @@ class Trainer(object):
         demonstrator = ORCA()
         demonstrator.set_device(torch.device('cpu'))
         demonstrator.set_phase('test')
-        demonstrator.time_step = self.env.unwrapped.time_step
+        demonstrator.time_step = self.time_step
 
         obs = self.env.reset()
         joint_state = self.env.unwrapped.compute_coordinate_observation()
@@ -283,16 +284,16 @@ class Trainer(object):
     def _select_epsilon_greedy_action(self, model, obs, eps_threshold):
         sample = random.random()
         if sample > eps_threshold:
-            frames = torch.from_numpy(obs[0]).unsqueeze(0) / 255.0
-            goals = torch.from_numpy(obs[1]).unsqueeze(0)
+            frames = torch.from_numpy(obs[0]).unsqueeze(0).to(self.device) / 255.0
+            goals = torch.from_numpy(obs[1]).unsqueeze(0).to(self.device)
             # Use volatile = True if variable is only used in inference mode, i.e. don’t save the history
             return model(frames, goals).data.max(1)[1].cpu()
         else:
             return torch.IntTensor([random.randrange(self.num_actions)])
 
     def act(self, obs):
-        frames = torch.from_numpy(obs[0]).unsqueeze(0) / 255.0
-        goals = torch.from_numpy(np.array(obs[1])).unsqueeze(0)
+        frames = torch.from_numpy(obs[0]).unsqueeze(0).to(self.device) / 255.0
+        goals = torch.from_numpy(np.array(obs[1])).unsqueeze(0).to(self.device)
         return self.Q(frames, goals).data.max(1)[1].cpu()
 
     def _td_update(self, optimizer):
@@ -303,11 +304,11 @@ class Trainer(object):
         frames_batch, goals_batch, action_batch, reward_batch, next_frames_batch, next_goals_batch, done_mask = \
             self.replay_buffer.sample(self.batch_size)
         # Convert numpy nd_array to torch variables for calculation
-        frames_batch = torch.from_numpy(frames_batch).float().to(self.device) / 255.0
+        frames_batch = torch.from_numpy(frames_batch).to(self.device) / 255.0
         goals_batch = torch.from_numpy(goals_batch).to(self.device)
         action_batch = torch.from_numpy(action_batch).long().to(self.device)
         reward_batch = torch.from_numpy(reward_batch).to(self.device)
-        next_frames_batch = torch.from_numpy(next_frames_batch).float().to(self.device) / 255.0
+        next_frames_batch = torch.from_numpy(next_frames_batch).to(self.device) / 255.0
         next_goals_batch = torch.from_numpy(next_goals_batch).to(self.device)
         not_done_mask = torch.from_numpy(1 - done_mask).to(self.device)
 
@@ -320,7 +321,7 @@ class Trainer(object):
         next_max_q = self.target_Q(next_frames_batch, next_goals_batch).detach().max(1)[0]
         next_q_values = not_done_mask * next_max_q
         # Compute the target of the current Q values
-        target_q_values = reward_batch + (self.gamma * next_q_values)
+        target_q_values = reward_batch + (pow(self.gamma, self.time_step) * next_q_values)
 
         # Compute Bellman error
         td_error = target_q_values - current_q_values
@@ -362,14 +363,14 @@ def main():
     parser.add_argument('--eps_start', type=float, default=1)
     parser.add_argument('--eps_end', type=float, default=0.1)
     parser.add_argument('--eps_decay_steps', type=int, default=1000000)
-    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--gamma', type=float, default=0.9)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_timesteps', type=int, default=2000000)
     parser.add_argument('--learning_starts', type=int, default=50000)
     parser.add_argument('--reward_shaping', default=False, action='store_true')
     parser.add_argument('--curriculum_learning', default=False, action='store_true')
     parser.add_argument('--test', default=False, action='store_true')
-    parser.add_argument('--num_test_case', type=int, default=20)
+    parser.add_argument('--num_test_case', type=int, default=50)
     args = parser.parse_args()
 
     if args.test:
@@ -428,13 +429,13 @@ def main():
         # imitation learning
         il_optimizer_spec = OptimizerSpec(
             constructor=optim.RMSprop,
-            kwargs=dict(lr=0.01, alpha=0.95, eps=0.01),
+            kwargs=dict(lr=0.00025, alpha=0.95, eps=0.01),
         )
         if args.with_il:
             trainer.imitation_learning(
                 optimizer_spec=il_optimizer_spec,
                 demonstrate_steps=50000,
-                update_steps=100000
+                update_steps=1000000
             )
 
         # reinforcement learning

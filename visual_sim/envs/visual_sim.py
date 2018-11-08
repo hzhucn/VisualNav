@@ -52,8 +52,8 @@ class VisualSim(Env):
         self.goal_position = np.array((self.goal_distance, 0, -1))
 
         # rewards
-        self.collision_penalty = -0.25
-        self.success_reward = 1
+        self.collision_penalty = -1
+        self.success_reward = 0.25
         self.max_time = 40
         self.reward_shaping = reward_shaping
         self.curriculum_learning = curriculum_learning
@@ -216,7 +216,7 @@ class VisualSim(Env):
         yaw = airsim.to_eularian_angles(pose.orientation)[2]
         phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val) - yaw
         goal = Goal(r, phi)
-        logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, phi))
+        logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, phi / np.pi * 180))
 
         observation = Observation(image, goal)
 

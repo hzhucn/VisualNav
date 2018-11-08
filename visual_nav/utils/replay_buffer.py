@@ -192,7 +192,7 @@ class ReplayBuffer(object):
             frame = frame.transpose(2, 0, 1)
 
         if self.frames is None:
-            self.frames = np.empty([self.size] + list(frame.shape), dtype=np.uint8)
+            self.frames = np.empty([self.size] + list(frame.shape), dtype=np.float32)
             self.goals = np.empty([self.size, 2], dtype=np.float32)
             self.action = np.empty([self.size], dtype=np.float32)
             self.reward = np.empty([self.size], dtype=np.float32)
