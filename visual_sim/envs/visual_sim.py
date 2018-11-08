@@ -52,8 +52,8 @@ class VisualSim(Env):
         self.goal_position = np.array((self.goal_distance, 0, -1))
 
         # rewards
-        self.collision_penalty = -1
-        self.success_reward = 0.25
+        self.collision_penalty = -0.25
+        self.success_reward = 1
         self.max_time = 40
         self.reward_shaping = reward_shaping
         self.curriculum_learning = curriculum_learning

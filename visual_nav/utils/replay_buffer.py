@@ -57,12 +57,13 @@ class ReplayBuffer(object):
         self.action = None
         self.reward = None
         self.done = None
+        self.value = None
 
     def can_sample(self, batch_size):
         """Returns true if `batch_size` different transitions can be sampled from the buffer."""
         return batch_size + 1 <= self.num_in_buffer
 
-    def _encode_sample(self, idxes):
+    def _encode_sample(self, idxes, with_value=False):
         frames_batch = []
         goals_batch = []
         for idx in idxes:
@@ -84,11 +85,16 @@ class ReplayBuffer(object):
         next_frames_batch = np.concatenate(next_frames_batch, 0)
         next_goals_batch = np.concatenate(next_goals_batch, 0)
 
-        done_mask = np.array([1.0 if self.done[idx] else 0.0 for idx in idxes], dtype=np.float32)
+        done_mask = self.done[idxes]
 
-        return frames_batch, goals_batch, act_batch, rew_batch, next_frames_batch, next_goals_batch, done_mask
+        if not with_value:
+            return frames_batch, goals_batch, act_batch, rew_batch, next_frames_batch, next_goals_batch, done_mask
+        else:
+            value_batch = self.value[idxes]
+            return frames_batch, goals_batch, act_batch, rew_batch, next_frames_batch, next_goals_batch, done_mask, \
+                   value_batch
 
-    def sample(self, batch_size):
+    def sample(self, batch_size, with_value=False):
         """Sample `batch_size` different transitions.
 
         i-th sample transition is the following:
@@ -123,7 +129,7 @@ class ReplayBuffer(object):
         """
         assert self.can_sample(batch_size)
         idxes = sample_n_unique(lambda: random.randint(0, self.num_in_buffer - 2), batch_size)
-        return self._encode_sample(idxes)
+        return self._encode_sample(idxes, with_value)
 
     def encode_recent_observation(self):
         """Return the most recent `frame_history_len` frames.
@@ -197,6 +203,7 @@ class ReplayBuffer(object):
             self.action = np.empty([self.size], dtype=np.float32)
             self.reward = np.empty([self.size], dtype=np.float32)
             self.done = np.empty([self.size], dtype=np.float32)
+            self.value = np.empty([self.size], dtype=np.float32)
 
         self.frames[self.next_idx] = frame
         self.goals[self.next_idx] = np.array(goal)
@@ -227,3 +234,6 @@ class ReplayBuffer(object):
         self.action[idx] = action
         self.reward[idx] = reward
         self.done[idx] = done
+
+    def store_value(self, idx, value):
+        self.value[idx] = value

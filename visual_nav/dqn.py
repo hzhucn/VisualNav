@@ -98,7 +98,7 @@ class Trainer(object):
         self.num_param_updates = 0
         self.actions = None
 
-    def imitation_learning(self, optimizer_spec, demonstrate_steps=50000, update_steps=1000000):
+    def imitation_learning(self, optimizer_spec, update='td'):
         """
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
@@ -111,8 +111,6 @@ class Trainer(object):
             logging.info('Imitation learning trained weight loaded')
             return
 
-        optimizer = optimizer_spec.constructor(self.Q.parameters(), **optimizer_spec.kwargs)
-
         logging.info('Start imitation learning')
         # TODO: use 2D RL as demonstrator
         demonstrator = ORCA()
@@ -120,27 +118,71 @@ class Trainer(object):
         demonstrator.set_phase('test')
         demonstrator.time_step = self.time_step
 
-        obs = self.env.reset()
-        joint_state = self.env.unwrapped.compute_coordinate_observation()
-        for step in count():
-            last_idx = self.replay_buffer.store_observation(obs)
-            action_rot = demonstrator.predict(joint_state)
-            action_xy, index = self._translate_action(action_rot)
-            obs, reward, done, info = self.env.step(action_rot)
-            self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
+        if update == 'td':
+            demonstrate_steps = 50000
+            num_train_batch = 1000000
+            optimizer = optimizer_spec.constructor(self.Q.parameters(), **optimizer_spec.kwargs)
 
-            if done:
-                if step > demonstrate_steps:
-                    break
-                else:
-                    logging.info(self.env.get_episode_summary())
-                    obs = self.env.reset()
-
+            obs = self.env.reset()
             joint_state = self.env.unwrapped.compute_coordinate_observation()
+            for step in count():
+                last_idx = self.replay_buffer.store_observation(obs)
+                action_rot = demonstrator.predict(joint_state)
+                action_xy, index = self._translate_action(action_rot)
+                obs, reward, done, info = self.env.step(action_rot)
+                self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
 
-        # finish collecting experience and update the model
-        for _ in range(update_steps):
-            self._td_update(optimizer)
+                if done:
+                    if step > demonstrate_steps:
+                        break
+                    else:
+                        logging.info(self.env.get_episode_summary())
+                        obs = self.env.reset()
+
+                joint_state = self.env.unwrapped.compute_coordinate_observation()
+
+            # finish collecting experience and update the model
+            for _ in range(num_train_batch):
+                self._td_update(optimizer)
+        elif update == 'mc':
+            num_episodes = 2000
+            num_train_batch = 10000
+            criterion = nn.MSELoss().to(self.device)
+            optimizer = optim.Adam(self.Q.parameters(), lr=0.001)
+
+            for episodes in range(num_episodes):
+                obs = self.env.reset()
+                joint_state = self.env.unwrapped.compute_coordinate_observation()
+                done = False
+
+                indices = []
+                rewards = []
+                while not done:
+                    last_idx = self.replay_buffer.store_observation(obs)
+                    action_rot = demonstrator.predict(joint_state)
+                    action_xy, index = self._translate_action(action_rot)
+                    obs, reward, done, info = self.env.step(action_rot)
+                    self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
+                    indices.append(last_idx)
+                    rewards.append(reward)
+
+                    if done:
+                        logging.info(self.env.get_episode_summary())
+                        obs = self.env.reset()
+
+                    joint_state = self.env.unwrapped.compute_coordinate_observation()
+
+                for i, index in enumerate(indices):
+                    value = sum([pow(self.gamma, max(t - i, 0) * self.time_step) * reward
+                                 for t, reward in enumerate(rewards)])
+                    self.replay_buffer.store_value(index, value)
+
+            # finish collecting experience and update the model
+            for _ in range(num_train_batch):
+                self._mc_update(optimizer, criterion)
+        else:
+            raise NotImplementedError
+
         torch.save(self.Q.state_dict(), weights_file)
         logging.info('Save imitation learning trained weights to {}'.format(weights_file))
 
@@ -348,11 +390,28 @@ class Trainer(object):
         if self.num_param_updates % self.target_update_freq == 0:
             self.target_Q.load_state_dict(self.Q.state_dict())
 
-    def _mc_update(self):
-        pass
+    def _mc_update(self, optimizer, criterion):
+        frames_batch, goals_batch, action_batch, _, _, _, _, value_batch = \
+            self.replay_buffer.sample(self.batch_size, with_value=True)
+        # Convert numpy nd_array to torch variables for calculation
+        frames_batch = torch.from_numpy(frames_batch).to(self.device) / 255.0
+        goals_batch = torch.from_numpy(goals_batch).to(self.device)
+        action_batch = torch.from_numpy(action_batch).long().to(self.device)
+        value_batch = torch.from_numpy(value_batch).to(self.device)
 
-    def _action_classification(self, optimizer):
-        pass
+        current_q_values = self.Q(frames_batch, goals_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
+        loss = criterion(current_q_values, value_batch)
+        optimizer.zero_grad()
+        loss.backward()
+        logging.info('Batch loss: {:.4f}'.format(loss.item()))
+
+        # Perform the update
+        optimizer.step()
+        self.num_param_updates += 1
+
+        # Periodically update the target network by Q network to target Q network
+        if self.num_param_updates % self.target_update_freq == 0:
+            self.target_Q.load_state_dict(self.Q.state_dict())
 
 
 def main():
@@ -360,6 +419,7 @@ def main():
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--with_il', default=False, action='store_true')
+    parser.add_argument('--il_update', type=str, default='td')
     parser.add_argument('--eps_start', type=float, default=1)
     parser.add_argument('--eps_end', type=float, default=0.1)
     parser.add_argument('--eps_decay_steps', type=int, default=1000000)
@@ -434,8 +494,7 @@ def main():
         if args.with_il:
             trainer.imitation_learning(
                 optimizer_spec=il_optimizer_spec,
-                demonstrate_steps=50000,
-                update_steps=1000000
+                update=args.il_update
             )
 
         # reinforcement learning
