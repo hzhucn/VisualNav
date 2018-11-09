@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from tensorboardX import SummaryWriter
+import matplotlib.pyplot as plt
 
 from crowd_sim.envs.utils.action import ActionXY, ActionRot
 from crowd_sim.envs.policy.orca import ORCA
@@ -26,6 +27,7 @@ from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.my_monitor import MyMonitor
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_sim.envs.visual_sim import VisualSim
+from visual_nav.utils.heatmap import heatmap
 
 
 """
@@ -75,13 +77,16 @@ class DAQN(nn.Module):
         self.fc4 = nn.Linear(64, 512)
         self.fc5 = nn.Linear(520, num_actions)
 
+        # for visualization
+        self.attention_weights = None
+
     def forward(self, frames, goals):
         device = frames.device
         batch_size = goals.size(0)
         frames = F.relu(self.conv1(frames))
         frames = F.relu(self.conv2(frames))
         frames = F.relu(self.conv3(frames))
-        # (b, 49, 64)
+        # (b, 64, 7, 7) -> (b, 49, 64)
         frames = frames.view(frames.size(0), frames.size(1), -1).permute(0, 2, 1)
         # (b * 49, 64)
         frames = frames.contiguous().view(-1, frames.size(2))
@@ -96,6 +101,7 @@ class DAQN(nn.Module):
         attention_input = torch.cat([frames, queries], dim=1)
         attention_scores = self.attention(attention_input).view(batch_size, 49, 1)
         attention_weights = F.softmax(attention_scores, dim=1)
+        self.attention_weights = attention_weights.data
 
         # compute aggregated feature
         frames = frames.view(batch_size, 49, 64)
@@ -143,13 +149,12 @@ class Trainer(object):
         self.action_dict = {action: (i, ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r)))
                             for i, action in enumerate(self.env.unwrapped.actions)}
 
-    def imitation_learning(self, num_episodes=2000):
+    def imitation_learning(self, num_episodes=2000, training='mc'):
         """
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
         """
         num_train_batch = num_episodes * 100
-        criterion = nn.MSELoss().to(self.device)
         optimizer = optim.Adam(self.Q.parameters(), lr=0.001)
         self.replay_buffer = ReplayBuffer(int(num_episodes * self.env.max_time / self.env.time_step),
                                           self.frame_history_len, self.image_size)
@@ -183,7 +188,7 @@ class Trainer(object):
                 indices = []
                 rewards = []
                 while not done:
-                    last_idx = replay_buffer.store_observation(obs)
+                    last_idx = self.replay_buffer.store_observation(obs)
                     action_xy = policy.predict(joint_state)
                     action_rot, index = self._approximate_action(action_xy)
                     obs, reward, done, info = self.env.step(action_rot)
@@ -204,8 +209,18 @@ class Trainer(object):
                 self.replay_buffer.save(replay_buffer_file)
 
         # finish collecting experience and update the model
+        criterion = None
         for _ in range(num_train_batch):
-            self._mc_update(optimizer, criterion)
+            if training == 'mc':
+                if not criterion:
+                    criterion = nn.MSELoss().to(self.device)
+                self._mc_update(optimizer, criterion)
+            elif training == 'classification':
+                if not criterion:
+                    criterion = nn.CrossEntropyLoss().to(self.device)
+                self._action_classification(optimizer, criterion)
+            else:
+                raise NotImplementedError
 
         torch.save(self.Q.state_dict(), weights_file)
         logging.info('Save imitation learning trained weights to {}'.format(weights_file))
@@ -230,11 +245,12 @@ class Trainer(object):
 
         return target_action, index
 
-    def test(self):
+    def test(self, visualize=True):
         logging.info('Start testing model')
         replay_buffer = ReplayBuffer(int(self.num_test_case * self.env.max_time / self.env.time_step),
                                      self.frame_history_len, self.image_size)
 
+        _, (ax1, ax2) = plt.subplots(1, 2)
         for i in range(self.num_test_case):
             obs = self.env.reset()
             done = False
@@ -242,6 +258,14 @@ class Trainer(object):
                 last_idx = replay_buffer.store_observation(obs)
                 recent_observations = replay_buffer.encode_recent_observation()
                 action = self.act(recent_observations)
+
+                if visualize:
+                    plt.ion()
+                    plt.show()
+                    ax1.imshow(obs.image[:, :, 0], cmap='gray')
+                    attention_weights = self.Q.attention_weights.squeeze().view(7, 7).cpu().numpy()
+                    heatmap(obs.image[:, :, 0], attention_weights, ax=ax2)
+
                 obs, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
 
@@ -481,6 +505,28 @@ class Trainer(object):
         if self.num_param_updates % self.target_update_freq == 0:
             self.target_Q.load_state_dict(self.Q.state_dict())
 
+    def _action_classification(self, optimizer, criterion):
+        frames_batch, goals_batch, action_batch, _, _, _, done_mask = \
+            self.replay_buffer.sample(self.batch_size)
+        # Convert numpy nd_array to torch variables for calculation
+        frames_batch = torch.from_numpy(frames_batch).to(self.device) / 255.0
+        goals_batch = torch.from_numpy(goals_batch).to(self.device)
+        action_batch = torch.from_numpy(action_batch).long().to(self.device)
+
+        predicted_actions = self.Q(frames_batch, goals_batch)
+        loss = criterion(predicted_actions, action_batch)
+        optimizer.zero_grad()
+        loss.backward()
+        logging.info('Batch loss: {:.4f}'.format(loss.item()))
+
+        # Perform the update
+        optimizer.step()
+        self.num_param_updates += 1
+
+        # Periodically update the target network by Q network to target Q network
+        if self.num_param_updates % self.target_update_freq == 0:
+            self.target_Q.load_state_dict(self.Q.state_dict())
+
     def load_weights(self, weights_file):
         if os.path.exists(weights_file):
             self.Q.load_state_dict(torch.load(weights_file))
@@ -497,6 +543,7 @@ def main():
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--with_il', default=False, action='store_true')
+    parser.add_argument('--il_training', type=str, default='mc')
     parser.add_argument('--num_episodes', type=int, default=2000)
     parser.add_argument('--with_rl', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)
@@ -577,7 +624,8 @@ def main():
         # imitation learning
         if args.with_il:
             trainer.imitation_learning(
-                num_episodes=args.num_episodes
+                num_episodes=args.num_episodes,
+                training=args.il_training
             )
 
         # reinforcement learning
