@@ -37,7 +37,7 @@ OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
 
 
 class DQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18, with_attention=False):
+    def __init__(self, in_channels=4, num_actions=18):
         """
         Initialize a deep Q-learning network as described in
         https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
@@ -47,7 +47,6 @@ class DQN(nn.Module):
             num_actions: number of action-value to output, one-to-one correspondence to action in game.
         """
         super(DQN, self).__init__()
-        self.with_attention = with_attention
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
@@ -59,6 +58,49 @@ class DQN(nn.Module):
         frames = F.relu(self.conv2(frames))
         frames = F.relu(self.conv3(frames))
         frames = F.relu(self.fc4(frames.view(frames.size(0), -1)))
+        features = torch.cat([frames, goals.view(goals.size(0), -1)], dim=1)
+        return self.fc5(features)
+
+
+class DAQN(nn.Module):
+    def __init__(self, in_channels=4, num_actions=18):
+        """
+        DQN with goal-dependent attention
+        """
+        super(DAQN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.attention = nn.Sequential(nn.Linear(64 + 9, 128), nn.ReLU(), nn.Linear(128, 1))
+        self.fc4 = nn.Linear(64, 512)
+        self.fc5 = nn.Linear(520, num_actions)
+
+    def forward(self, frames, goals):
+        device = frames.device
+        batch_size = goals.size(0)
+        frames = F.relu(self.conv1(frames))
+        frames = F.relu(self.conv2(frames))
+        frames = F.relu(self.conv3(frames))
+        # (b, 49, 64)
+        frames = frames.view(frames.size(0), frames.size(1), -1).permute(0, 2, 1)
+        # (b * 49, 64)
+        frames = frames.contiguous().view(-1, frames.size(2))
+
+        # (b, 8) -> (b, 49, 8) -> (b, 49, 9) -> (b * 49, 9)
+        goals_expanded = goals.view(batch_size, -1).unsqueeze(1).expand((batch_size, 49, 8))
+        block_indices = torch.Tensor([i for i in range(49)]).unsqueeze(0).unsqueeze(2).to(device)
+        block_indices = block_indices.expand((batch_size, 49, 1))
+        queries = torch.cat([goals_expanded, block_indices], dim=2).view(-1, 9)
+
+        # compute attention scores (b, 49, 1)
+        attention_input = torch.cat([frames, queries], dim=1)
+        attention_scores = self.attention(attention_input).view(batch_size, 49, 1)
+        attention_weights = F.softmax(attention_scores, dim=1)
+
+        # compute aggregated feature
+        frames = frames.view(batch_size, 49, 64)
+        agg_features = torch.sum(torch.mul(frames, attention_weights), dim=1)
+        frames = F.relu(self.fc4(agg_features))
         features = torch.cat([frames, goals.view(goals.size(0), -1)], dim=1)
         return self.fc5(features)
 
@@ -109,8 +151,8 @@ class Trainer(object):
         num_train_batch = num_episodes * 100
         criterion = nn.MSELoss().to(self.device)
         optimizer = optim.Adam(self.Q.parameters(), lr=0.001)
-        replay_buffer = ReplayBuffer(int(num_episodes * self.env.max_time / self.env.time_step),
-                                     self.frame_history_len, self.image_size)
+        self.replay_buffer = ReplayBuffer(int(num_episodes * self.env.max_time / self.env.time_step),
+                                          self.frame_history_len, self.image_size)
 
         logging.info('Start imitation learning')
         weights_file = os.path.join(self.output_dir, 'il_model.pth')
@@ -118,7 +160,7 @@ class Trainer(object):
         if self.load_weights(weights_file):
             return
         if os.path.exists(replay_buffer_file):
-            replay_buffer.load(replay_buffer_file)
+            self.replay_buffer.load(replay_buffer_file)
         else:
             model_dir = 'data/sarl'
             assert os.path.exists(model_dir)
@@ -145,7 +187,7 @@ class Trainer(object):
                     action_xy = policy.predict(joint_state)
                     action_rot, index = self._approximate_action(action_xy)
                     obs, reward, done, info = self.env.step(action_rot)
-                    replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
+                    self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
                     indices.append(last_idx)
                     rewards.append(reward)
 
@@ -158,8 +200,8 @@ class Trainer(object):
                 for i, index in enumerate(indices):
                     value = sum([pow(self.gamma, max(t - i, 0) * self.time_step) * reward
                                  for t, reward in enumerate(rewards)])
-                    replay_buffer.store_value(index, value)
-            replay_buffer.save(replay_buffer_file)
+                    self.replay_buffer.store_value(index, value)
+                self.replay_buffer.save(replay_buffer_file)
 
         # finish collecting experience and update the model
         for _ in range(num_train_batch):
@@ -451,6 +493,7 @@ class Trainer(object):
 
 def main():
     parser = argparse.ArgumentParser('Parse configuration file')
+    parser.add_argument('--model', type=str, default='dqn')
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--with_il', default=False, action='store_true')
@@ -509,9 +552,11 @@ def main():
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
 
+    model_dict = {'dqn': DQN, 'daqn': DAQN}
+
     trainer = Trainer(
         env=env,
-        q_func=DQN,
+        q_func=model_dict[args.model],
         device=device,
         output_dir=args.output_dir,
         replay_buffer_size=100000,
