@@ -2,8 +2,11 @@
     This file is copied/apdated from https://github.com/berkeleydeeprlcourse/homework/tree/master/hw3
 """
 import random
+import os
+import shutil
 from PIL import Image
 import numpy as np
+import logging
 
 
 def sample_n_unique(sampling_f, n):
@@ -237,3 +240,40 @@ class ReplayBuffer(object):
 
     def store_value(self, idx, value):
         self.value[idx] = value
+
+    def save(self, output_dir):
+        """ Save experience """
+        if os.path.exists(output_dir):
+            key = input('Replay buffer dir exists. Overwrite(y/n)?')
+            if key == 'y':
+                shutil.rmtree(output_dir)
+            else:
+                return
+            os.mkdir(output_dir)
+        else:
+            os.mkdir(output_dir)
+
+        np.save(os.path.join(output_dir, 'frames'), self.frames)
+        np.save(os.path.join(output_dir, 'goals'), self.goals)
+        np.save(os.path.join(output_dir, 'action'), self.action)
+        np.save(os.path.join(output_dir, 'reward'), self.reward)
+        np.save(os.path.join(output_dir, 'done'), self.done)
+        np.save(os.path.join(output_dir, 'value'), self.value)
+        with open(os.path.join(output_dir, 'num_in_buffer.txt'), 'w') as fo:
+            fo.write(str(self.num_in_buffer))
+        logging.info('Saved the replay buffer in {}'.format(output_dir))
+
+    def load(self, input_dir):
+        if not os.path.exists(input_dir):
+            raise ValueError('Dir does not exist')
+
+        self.frames = np.load(os.path.join(input_dir, 'frames.npy'))
+        self.goals = np.load(os.path.join(input_dir, 'goals.npy'))
+        self.action = np.load(os.path.join(input_dir, 'action.npy'))
+        self.reward = np.load(os.path.join(input_dir, 'reward.npy'))
+        self.done = np.load(os.path.join(input_dir, 'done.npy'))
+        self.value = np.load(os.path.join(input_dir, 'value.npy'))
+
+        with open(os.path.join(input_dir, 'num_in_buffer.txt'), 'r') as fo:
+            self.num_in_buffer = int(fo.read())
+            logging.info('The replay buffer loaded in {}'.format(input_dir))

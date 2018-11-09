@@ -8,6 +8,7 @@ class MyMonitor(Monitor):
         super().__init__(env, directory, resume=True)
         self.show_image = show_image
         self.time_step = env.time_step
+        self.max_time = env.max_time
         self.successes = list()
         self.collisions = list()
         self.overtimes = list()
