@@ -239,7 +239,7 @@ class Trainer(object):
         logging.info(self.env.get_episodes_summary(num_last_episodes=self.num_test_case))
 
     def reinforcement_learning(self, optimizer_spec, exploration, learning_starts=50000,
-                               learning_freq=4, num_timesteps=2000000):
+                               learning_freq=4, num_timesteps=2000000, episode_update=False):
         weights_file = os.path.join(self.output_dir, 'rl_model.pth')
         statistics_file = os.path.join(self.output_dir, 'statistics.json')
 
@@ -258,48 +258,93 @@ class Trainer(object):
         avg_time = -float('nan')
         best_avg_episode_reward = -float('inf')
         last_obs = self.env.reset()
-
         optimizer = optimizer_spec.constructor(self.Q.parameters(), **optimizer_spec.kwargs)
 
-        for t in count():
+        t = 0
+        while True:
             # Check stopping criterion
             if self.env.get_total_steps() > num_timesteps:
                 break
 
-            # Step the env and store the transition
-            # Store last observation in replay memory and last_idx can be used to store action, reward, done
-            last_idx = self.replay_buffer.store_observation(last_obs)
-            # encode_recent_observation will take the latest observation
-            # that you pushed into the buffer and compute the corresponding
-            # input that should be given to a Q network by appending some
-            # previous frames.
-            recent_observations = self.replay_buffer.encode_recent_observation()
+            if not episode_update:
+                last_idx = self.replay_buffer.store_observation(last_obs)
+                recent_observations = self.replay_buffer.encode_recent_observation()
 
-            # Choose random action if not yet start learning
-            if t > learning_starts:
-                eps_threshold = exploration.value(t)
-                action = self._select_epsilon_greedy_action(self.Q, recent_observations, eps_threshold)[0]
+                # Choose random action if not yet start learning
+                if t > learning_starts:
+                    eps_threshold = exploration.value(t)
+                    action = self._select_epsilon_greedy_action(self.Q, recent_observations, eps_threshold)[0]
+                else:
+                    action = torch.IntTensor([[random.randrange(self.num_actions)]])
+                # Advance one step
+                obs, reward, done, info = self.env.step(action.item())
+                # Store other info in replay memory
+                self.replay_buffer.store_effect(last_idx, action, reward, done)
+                # Resets the environment when reaching an episode boundary.
+                if done:
+                    logging.info(self.env.get_episode_summary() + ' in step {}'.format(t))
+                    obs = self.env.reset()
+                last_obs = obs
+
+                if (t > learning_starts and t % learning_freq == 0 and
+                        self.replay_buffer.can_sample(self.batch_size)):
+                    self._td_update(optimizer)
+                t += 1
             else:
-                action = torch.IntTensor([[random.randrange(self.num_actions)]])
-            # Advance one step
-            obs, reward, done, info = self.env.step(action.item())
-            # clip rewards between -1 and 1
-            reward = max(-1.0, min(reward, 1.0))
-            # Store other info in replay memory
-            self.replay_buffer.store_effect(last_idx, action, reward, done)
-            # Resets the environment when reaching an episode boundary.
-            if done:
-                logging.info(self.env.get_episode_summary() + ' in step {}'.format(t))
-                obs = self.env.reset()
-            last_obs = obs
+                done = False
+                observations = []
+                frames = []
+                goals = []
+                effects = []
+                while not done:
+                    frame, goal = last_obs
+                    frame = np.array(frame).astype(np.float32)
+                    goal = np.array(goal).astype(np.float32)
 
-            # Perform experience replay and train the network.
-            # Note that this is only done if the replay buffer contains enough samples
-            # for us to learn something useful -- until then, the model will not be
-            # initialized and random actions should be taken
-            if (t > learning_starts and t % learning_freq == 0 and
-                    self.replay_buffer.can_sample(self.batch_size)):
-                self._td_update(optimizer)
+                    # transpose image frame into (img_c, img_h, img_w)
+                    frame = frame.transpose(2, 0, 1)
+                    frames.append(frame)
+                    goals.append(goal)
+
+                    frame_concat = []
+                    goal_concat = []
+                    if len(frames) < self.frame_history_len:
+                        for _ in range(self.frame_history_len - len(frames)):
+                            frame_concat.append(np.zeros_like(frame))
+                            goal_concat.append(np.zeros_like(goal))
+                        frame_concat += frames
+                        goal_concat += goals
+                    else:
+                        frame_concat = frames[-4:]
+                        goal_concat = goals[-4:]
+                    frame_concat = np.concatenate(frame_concat, 0)
+                    goal_concat = np.concatenate(goal_concat, 0)
+                    recent_observations = frame_concat, goal_concat
+
+                    if t > learning_starts:
+                        eps_threshold = exploration.value(t)
+                        action = self._select_epsilon_greedy_action(self.Q, recent_observations, eps_threshold)[0]
+                    else:
+                        action = torch.IntTensor([[random.randrange(self.num_actions)]])
+
+                    obs, reward, done, info = self.env.step(action.item())
+
+                    observations.append(last_obs)
+                    effects.append((action, reward, done))
+                    last_obs = obs
+                    t += 1
+
+                if info in ['Success', 'Collision']:
+                    # only update the replay buffer if the robot has positive reward
+                    for obs, effect in zip(observations, effects):
+                        last_idx = self.replay_buffer.store_observation(obs)
+                        self.replay_buffer.store_effect(last_idx, *effect)
+                        if (t > learning_starts and t % learning_freq == 0 and
+                                self.replay_buffer.can_sample(self.batch_size)):
+                            self._td_update(optimizer)
+
+                last_obs = self.env.reset()
+                logging.info(self.env.get_episode_summary())
 
             # Log progress and keep track of statistics
             num_last_episodes = 100
@@ -446,6 +491,7 @@ def main():
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=50)
     parser.add_argument('--show_image', default=False, action='store_true')
+    parser.add_argument('--episode_update', default=False, action='store_true')
     args = parser.parse_args()
 
     if args.test:
@@ -527,7 +573,8 @@ def main():
             exploration=exploration_schedule,
             learning_starts=args.learning_starts,
             learning_freq=4,
-            num_timesteps=args.num_timesteps
+            num_timesteps=args.num_timesteps,
+            episode_update=args.episode_update
         )
 
 
