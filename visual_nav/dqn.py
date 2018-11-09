@@ -34,11 +34,10 @@ from visual_sim.envs.visual_sim import VisualSim
         kwargs: {Dict} arguments for constructing optimizer
 """
 OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
-STEPDEBUG = False
 
 
 class DQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18):
+    def __init__(self, in_channels=4, num_actions=18, with_attention=False):
         """
         Initialize a deep Q-learning network as described in
         https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
@@ -48,6 +47,7 @@ class DQN(nn.Module):
             num_actions: number of action-value to output, one-to-one correspondence to action in game.
         """
         super(DQN, self).__init__()
+        self.with_attention = with_attention
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
@@ -106,16 +106,10 @@ class Trainer(object):
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
         """
-        weights_file = os.path.join(self.output_dir, 'il_model.pth')
-        # TODO: how to optimize q-value function
-        if os.path.exists(weights_file):
-            self.Q.load_state_dict(torch.load(weights_file))
-            self.target_Q.load_state_dict(torch.load(weights_file))
-            logging.info('Imitation learning trained weight loaded')
+        if self.load_il_weights():
             return
 
         logging.info('Start imitation learning')
-        # TODO: use 2D RL as demonstrator
         model_dir = 'data/sarl'
         assert os.path.exists(model_dir)
         policy = SARL()
@@ -240,14 +234,8 @@ class Trainer(object):
 
     def reinforcement_learning(self, optimizer_spec, exploration, learning_starts=50000,
                                learning_freq=4, num_timesteps=2000000, episode_update=False):
-        weights_file = os.path.join(self.output_dir, 'rl_model.pth')
         statistics_file = os.path.join(self.output_dir, 'statistics.json')
-
-        if os.path.exists(weights_file):
-            self.Q.load_state_dict(torch.load(weights_file))
-            self.target_Q.load_state_dict(torch.load(weights_file))
-            logging.info('Reinforcement learning trained weight loaded')
-
+        self.load_rl_weights()
         logging.info('Start reinforcement learning')
         writer = SummaryWriter()
         episode_starts = len(self.env.get_episode_rewards())
@@ -344,7 +332,7 @@ class Trainer(object):
                             self._td_update(optimizer)
 
                 last_obs = self.env.reset()
-                logging.info(self.env.get_episode_summary())
+                logging.info(self.env.get_episode_summary() + ' in step {}'.format(t))
 
             # Log progress and keep track of statistics
             num_last_episodes = 100
@@ -472,6 +460,26 @@ class Trainer(object):
         if self.num_param_updates % self.target_update_freq == 0:
             self.target_Q.load_state_dict(self.Q.state_dict())
 
+    def load_il_weights(self):
+        weights_file = os.path.join(self.output_dir, 'il_model.pth')
+        if os.path.exists(weights_file):
+            self.Q.load_state_dict(torch.load(weights_file))
+            self.target_Q.load_state_dict(torch.load(weights_file))
+            logging.info('Imitation learning trained weight loaded')
+            return True
+        else:
+            return False
+
+    def load_rl_weights(self):
+        weights_file = os.path.join(self.output_dir, 'rl_model.pth')
+        if os.path.exists(weights_file):
+            self.Q.load_state_dict(torch.load(weights_file))
+            self.target_Q.load_state_dict(torch.load(weights_file))
+            logging.info('Reinforcement learning trained weight loaded')
+            return True
+        else:
+            return False
+
 
 def main():
     parser = argparse.ArgumentParser('Parse configuration file')
@@ -488,13 +496,14 @@ def main():
     parser.add_argument('--learning_starts', type=int, default=50000)
     parser.add_argument('--reward_shaping', default=False, action='store_true')
     parser.add_argument('--curriculum_learning', default=False, action='store_true')
-    parser.add_argument('--test', default=False, action='store_true')
+    parser.add_argument('--test_il', default=False, action='store_true')
+    parser.add_argument('--test_rl', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=50)
     parser.add_argument('--show_image', default=False, action='store_true')
     parser.add_argument('--episode_update', default=False, action='store_true')
     args = parser.parse_args()
 
-    if args.test:
+    if args.test_il or args.test_rl:
         if not os.path.exists(args.output_dir):
             raise ValueError('Model dir does not exist')
     else:
@@ -544,7 +553,11 @@ def main():
         num_test_case=args.num_test_case
     )
 
-    if args.test:
+    if args.test_il:
+        trainer.load_il_weights()
+        trainer.test()
+    elif args.test_rl:
+        trainer.load_rl_weights()
         trainer.test()
     else:
         # imitation learning
