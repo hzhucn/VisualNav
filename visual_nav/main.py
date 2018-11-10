@@ -136,18 +136,14 @@ class Trainer(object):
                 self.replay_buffer.save(replay_buffer_file)
 
         # finish collecting experience and update the model
-        criterion = None
-        for _ in range(num_train_batch):
-            if training == 'mc':
-                if not criterion:
-                    criterion = nn.MSELoss().to(self.device)
-                self._mc_update(optimizer, criterion)
-            elif training == 'classification':
-                if not criterion:
-                    criterion = nn.CrossEntropyLoss().to(self.device)
-                self._action_classification(optimizer, criterion)
-            else:
-                raise NotImplementedError
+        if training == 'mc':
+            criterion = nn.MSELoss().to(self.device)
+            self._mc_update(optimizer, criterion, num_train_batch)
+        elif training == 'classification':
+            criterion = nn.CrossEntropyLoss().to(self.device)
+            self._action_classification(optimizer, criterion, num_train_batch)
+        else:
+            raise NotImplementedError
 
         torch.save(self.Q.state_dict(), weights_file)
         logging.info('Save imitation learning trained weights to {}'.format(weights_file))
@@ -172,12 +168,13 @@ class Trainer(object):
 
         return target_action, index
 
-    def test(self, visualize=True):
+    def test(self, visualize=False):
         logging.info('Start testing model')
         replay_buffer = ReplayBuffer(int(self.num_test_case * self.env.max_time / self.env.time_step),
                                      self.frame_history_len, self.image_size)
 
-        _, (ax1, ax2) = plt.subplots(1, 2)
+        if visualize:
+            _, (ax1, ax2) = plt.subplots(1, 2)
         for i in range(self.num_test_case):
             obs = self.env.reset()
             done = False
@@ -196,7 +193,7 @@ class Trainer(object):
                     action_rot = self.env.unwrapped.actions[action.item()]
                     logging.info('v: {:.2f}, r: {:.2f}'.format(action_rot[0], -np.rad2deg(action_rot[1])))
 
-                    obs, reward, done, info = self.env.step(action.item())
+                obs, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
 
             logging.info(self.env.get_episode_summary())
@@ -409,50 +406,50 @@ class Trainer(object):
         if self.num_param_updates % self.target_update_freq == 0:
             self.target_Q.load_state_dict(self.Q.state_dict())
 
-    def _mc_update(self, optimizer, criterion):
-        frames_batch, goals_batch, action_batch, _, _, _, _, value_batch = \
-            self.replay_buffer.sample(self.batch_size, with_value=True)
-        # Convert numpy nd_array to torch variables for calculation
-        frames_batch = torch.from_numpy(frames_batch).to(self.device) / 255.0
-        goals_batch = torch.from_numpy(goals_batch).to(self.device)
-        action_batch = torch.from_numpy(action_batch).long().to(self.device)
-        value_batch = torch.from_numpy(value_batch).to(self.device)
+    def _mc_update(self, optimizer, criterion, num_train_batch=1):
+        for _ in range(num_train_batch):
+            frames_batch, goals_batch, action_batch, _, _, _, _, value_batch = \
+                self.replay_buffer.sample(self.batch_size, with_value=True)
+            # Convert numpy nd_array to torch variables for calculation
+            frames_batch = torch.from_numpy(frames_batch).to(self.device) / 255.0
+            goals_batch = torch.from_numpy(goals_batch).to(self.device)
+            action_batch = torch.from_numpy(action_batch).long().to(self.device)
+            value_batch = torch.from_numpy(value_batch).to(self.device)
 
-        current_q_values = self.Q(frames_batch, goals_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
-        loss = criterion(current_q_values, value_batch)
-        optimizer.zero_grad()
-        loss.backward()
-        logging.info('Batch loss: {:.4f}'.format(loss.item()))
+            current_q_values = self.Q(frames_batch, goals_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
+            loss = criterion(current_q_values, value_batch)
+            optimizer.zero_grad()
+            loss.backward()
+            logging.info('Batch loss: {:.4f}'.format(loss.item()))
 
-        # Perform the update
-        optimizer.step()
-        self.num_param_updates += 1
+            # Perform the update
+            optimizer.step()
+            self.num_param_updates += 1
 
-        # Periodically update the target network by Q network to target Q network
-        if self.num_param_updates % self.target_update_freq == 0:
-            self.target_Q.load_state_dict(self.Q.state_dict())
+            # Periodically update the target network by Q network to target Q network
+            if self.num_param_updates % self.target_update_freq == 0:
+                self.target_Q.load_state_dict(self.Q.state_dict())
 
-    def _action_classification(self, optimizer, criterion):
-        frames_batch, goals_batch, action_batch, _, _, _, done_mask = \
-            self.replay_buffer.sample(self.batch_size)
-        # Convert numpy nd_array to torch variables for calculation
-        frames_batch = torch.from_numpy(frames_batch).to(self.device) / 255.0
-        goals_batch = torch.from_numpy(goals_batch).to(self.device)
-        action_batch = torch.from_numpy(action_batch).long().to(self.device)
+    def _action_classification(self, optimizer, criterion, num_train_batch):
+        for _ in range(num_train_batch):
+            frames_batch, goals_batch, action_batch, _, _, _, done_mask = \
+                self.replay_buffer.sample(self.batch_size)
+            # Convert numpy nd_array to torch variables for calculation
+            frames_batch = torch.from_numpy(frames_batch).to(self.device) / 255.0
+            goals_batch = torch.from_numpy(goals_batch).to(self.device)
+            action_batch = torch.from_numpy(action_batch).long().to(self.device)
 
-        predicted_actions = self.Q(frames_batch, goals_batch)
-        loss = criterion(predicted_actions, action_batch)
-        optimizer.zero_grad()
-        loss.backward()
-        logging.info('Batch loss: {:.4f}'.format(loss.item()))
+            predicted_actions = self.Q(frames_batch, goals_batch)
+            loss = criterion(predicted_actions, action_batch)
+            optimizer.zero_grad()
+            loss.backward()
 
-        # Perform the update
-        optimizer.step()
-        self.num_param_updates += 1
+            # Perform the update
+            optimizer.step()
+            self.num_param_updates += 1
 
-        # Periodically update the target network by Q network to target Q network
-        if self.num_param_updates % self.target_update_freq == 0:
-            self.target_Q.load_state_dict(self.Q.state_dict())
+            if self.num_param_updates % self.log_every_n_steps == 0:
+                logging.info('Batch loss: {:.4f} after {} batches'.format(loss.item(), self.num_param_updates))
 
     def load_weights(self, weights_file):
         if os.path.exists(weights_file):
@@ -469,7 +466,7 @@ def main():
     parser.add_argument('--model', type=str, default='dqn')
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
-    parser.add_argument('--with_il', default=False, action='store_true')
+    parser.add_argument('--with_il', default=True, action='store_true')
     parser.add_argument('--il_training', type=str, default='classification')
     parser.add_argument('--num_episodes', type=int, default=2000)
     parser.add_argument('--with_rl', default=False, action='store_true')

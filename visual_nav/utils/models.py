@@ -101,10 +101,10 @@ class DA1QN(nn.Module):
         self.attention_weights = None
 
     def forward(self, frames, goals):
-        batch_size = goals.size(0)
         frames = F.relu(self.conv1(frames))
         frames = F.relu(self.conv2(frames))
         frames = F.relu(self.conv3(frames))
+
         # -> b, 32, 7, 7
         theta2_x = self.theta2(frames)
         theta2_x = theta2_x.view(-1, 32, 49)
@@ -116,11 +116,136 @@ class DA1QN(nn.Module):
         self.attention_weights = attention_weights.data
 
         # compute aggregated feature
-        frames = frames.view(batch_size, 49, 64)
+        frames = frames.view(-1, 64, 49).permute(0, 2, 1)
         agg_features = torch.sum(torch.mul(frames, attention_weights), dim=1)
         frames = F.relu(self.fc4(agg_features))
         features = torch.cat([frames, goals.view(goals.size(0), -1)], dim=1)
         return self.fc5(features)
 
 
-model_factory = {'dqn': DQN, 'daqn': DAQN, 'da1qn': DA1QN}
+class DA2QN(nn.Module):
+    def __init__(self, in_channels=4, num_actions=18):
+        """
+        DQN with goal-dependent attention
+        """
+        super(DA2QN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+
+        # first layer attention
+        self.theta1 = nn.Conv2d(64, 32, 1)
+        self.phi = nn.Conv2d(64, 32, 1)
+        self.g = nn.Conv2d(64, 32, 1)
+        self.p = nn.Conv2d(32, 64, 1)
+
+        # second layer attention
+        self.theta2 = nn.Conv2d(64, 32, 1)
+        self.alpha = nn.Linear(8, 32)
+        self.fc4 = nn.Linear(64, 512)
+        self.fc5 = nn.Linear(520, num_actions)
+
+        # for visualization
+        self.attention_weights = None
+
+    def forward(self, frames, goals):
+        batch_size = goals.size(0)
+        # compute feature map
+        frames = F.relu(self.conv1(frames))
+        frames = F.relu(self.conv2(frames))
+        feature_maps = F.relu(self.conv3(frames))
+
+        # self-attention
+        theta1_x = self.theta1(feature_maps).view(-1, 32, 49).permute(0, 2, 1)
+        phi_x = self.phi(feature_maps).view(-1, 32, 49)
+        # -> 49*49 similarity matrix
+        similarity_matrix = torch.matmul(theta1_x, phi_x)
+        self_attention_scores = F.softmax(similarity_matrix, dim=2)
+        # -> b, 32, 7, 7
+        g_x = self.g(feature_maps).view(-1, 32, 49).permute(0, 2, 1)
+        # -> b, 49, 32
+        sa_feature_maps = torch.matmul(self_attention_scores, g_x)
+        # -> b, 64, 7, 7
+        sa_feature_maps = self.p(sa_feature_maps.permute(0, 2, 1).contiguous().view(-1, 32, 7, 7))
+
+        # goal-oriented navigation
+        # -> b, 32, 7, 7
+        theta2_x = self.theta2(sa_feature_maps)
+        theta2_x = theta2_x.view(-1, 32, 49)
+        # -> b, 1, 32
+        alpha_g = self.alpha(goals.view(-1, 8)).unsqueeze(1)
+        # -> b, 49, 1, batched matrix multiplication
+        attention_scores = torch.matmul(alpha_g, theta2_x).view(-1, 49, 1)
+        attention_weights = F.softmax(attention_scores, dim=1)
+        self.attention_weights = attention_weights.data
+
+        # compute aggregated feature
+        sa_feature_maps = sa_feature_maps.view(-1, 64, 49).permute(0, 2, 1)
+        agg_features = torch.sum(torch.mul(sa_feature_maps, attention_weights), dim=1)
+        sa_feature_maps = F.relu(self.fc4(agg_features))
+        features = torch.cat([sa_feature_maps, goals.view(goals.size(0), -1)], dim=1)
+        return self.fc5(features)
+
+
+class DDAQN(nn.Module):
+    def __init__(self, in_channels=4, num_actions=18):
+        """
+        DQN with goal-dependent attention
+        """
+        super(DDAQN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+
+        # first layer attention
+        self.theta = nn.Conv2d(64, 32, 1)
+        self.phi = nn.Conv2d(64, 32, 1)
+        self.g = nn.Conv2d(64, 32, 1)
+        self.p = nn.Conv2d(32, 64, 1)
+
+        # second layer attention
+        self.alpha = nn.Linear(8, 32)
+        self.fc4 = nn.Linear(64, 512)
+        self.fc5 = nn.Linear(520, num_actions)
+
+        # for visualization
+        self.attention_weights = None
+
+    def forward(self, frames, goals):
+        batch_size = goals.size(0)
+        # compute feature map
+        frames = F.relu(self.conv1(frames))
+        frames = F.relu(self.conv2(frames))
+        feature_maps = F.relu(self.conv3(frames))
+
+        # self-attention
+        theta_x = self.theta(feature_maps).view(-1, 32, 49).permute(0, 2, 1)
+        phi_x = self.phi(feature_maps).view(-1, 32, 49)
+        # -> 49*49 similarity matrix
+        similarity_matrix = torch.matmul(theta_x, phi_x)
+        self_attention_scores = F.softmax(similarity_matrix, dim=2)
+        # -> b, 32, 7, 7
+        g_x = self.g(feature_maps).view(-1, 32, 49).permute(0, 2, 1)
+        # -> b, 49, 32
+        sa_feature_maps = torch.matmul(self_attention_scores, g_x)
+        # -> b, 64, 7, 7
+        sa_feature_maps = self.p(sa_feature_maps.permute(0, 2, 1).contiguous().view(-1, 32, 7, 7))
+
+        # goal-oriented navigation
+        # -> b, 1, 32
+        alpha_g = self.alpha(goals.view(-1, 8)).unsqueeze(2)
+        # -> b, 49, 1, batched matrix multiplication
+        attention_scores = torch.matmul(theta_x, alpha_g)
+        attention_weights = F.softmax(attention_scores, dim=1)
+        self.attention_weights = attention_weights.data
+
+        # compute aggregated feature
+        # -> b, 49, 64
+        sa_feature_maps = sa_feature_maps.view(batch_size, 64, 49).permute(0, 2, 1)
+        ga_feature_maps = torch.sum(torch.mul(sa_feature_maps, attention_weights), dim=1)
+        ga_feature_maps = F.relu(self.fc4(ga_feature_maps))
+        features = torch.cat([ga_feature_maps, goals.view(goals.size(0), -1)], dim=1)
+        return self.fc5(features)
+
+
+model_factory = {'dqn': DQN, 'daqn': DAQN, 'da1qn': DA1QN, 'da2qn': DA2QN, 'ddaqn': DDAQN}
