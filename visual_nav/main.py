@@ -15,19 +15,19 @@ import gym.spaces
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 import matplotlib.pyplot as plt
 
-from crowd_sim.envs.utils.action import ActionXY, ActionRot
-from crowd_sim.envs.policy.orca import ORCA
+from crowd_sim.envs.utils.action import ActionXY
 from crowd_nav.policy.sarl import SARL
+from visual_sim.envs.visual_sim import VisualSim
 from visual_nav.utils.replay_buffer import ReplayBuffer
 from visual_nav.utils.my_monitor import MyMonitor
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
-from visual_sim.envs.visual_sim import VisualSim
 from visual_nav.utils.heatmap import heatmap
+from visual_nav.utils.models import model_factory
+
 
 
 """
@@ -36,79 +36,6 @@ from visual_nav.utils.heatmap import heatmap
         kwargs: {Dict} arguments for constructing optimizer
 """
 OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
-
-
-class DQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18):
-        """
-        Initialize a deep Q-learning network as described in
-        https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
-        Arguments:
-            in_channels: number of channel of input.
-                i.e The number of most recent frames stacked together as describe in the paper
-            num_actions: number of action-value to output, one-to-one correspondence to action in game.
-        """
-        super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self.fc4 = nn.Linear(7 * 7 * 64, 512)
-        self.fc5 = nn.Linear(520, num_actions)
-
-    def forward(self, frames, goals):
-        frames = F.relu(self.conv1(frames))
-        frames = F.relu(self.conv2(frames))
-        frames = F.relu(self.conv3(frames))
-        frames = F.relu(self.fc4(frames.view(frames.size(0), -1)))
-        features = torch.cat([frames, goals.view(goals.size(0), -1)], dim=1)
-        return self.fc5(features)
-
-
-class DAQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18):
-        """
-        DQN with goal-dependent attention
-        """
-        super(DAQN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self.attention = nn.Sequential(nn.Linear(64 + 9, 128), nn.ReLU(), nn.Linear(128, 1))
-        self.fc4 = nn.Linear(64, 512)
-        self.fc5 = nn.Linear(520, num_actions)
-
-        # for visualization
-        self.attention_weights = None
-
-    def forward(self, frames, goals):
-        device = frames.device
-        batch_size = goals.size(0)
-        frames = F.relu(self.conv1(frames))
-        frames = F.relu(self.conv2(frames))
-        frames = F.relu(self.conv3(frames))
-        # (b, 64, 7, 7) -> (b, 49, 64)
-        frames = frames.view(frames.size(0), frames.size(1), -1).permute(0, 2, 1)
-        # (b * 49, 64)
-        frames = frames.contiguous().view(-1, frames.size(2))
-
-        # (b, 8) -> (b, 49, 8) -> (b, 49, 9) -> (b * 49, 9)
-        goals_expanded = goals.view(batch_size, -1).unsqueeze(1).expand((batch_size, 49, 8))
-        block_indices = torch.Tensor([i for i in range(49)]).unsqueeze(0).unsqueeze(2).to(device)
-        block_indices = block_indices.expand((batch_size, 49, 1))
-        queries = torch.cat([goals_expanded, block_indices], dim=2).view(-1, 9)
-
-        # compute attention scores (b, 49, 1)
-        attention_input = torch.cat([frames, queries], dim=1)
-        attention_scores = self.attention(attention_input).view(batch_size, 49, 1)
-        attention_weights = F.softmax(attention_scores, dim=1)
-        self.attention_weights = attention_weights.data
-
-        # compute aggregated feature
-        frames = frames.view(batch_size, 49, 64)
-        agg_features = torch.sum(torch.mul(frames, attention_weights), dim=1)
-        frames = F.relu(self.fc4(agg_features))
-        features = torch.cat([frames, goals.view(goals.size(0), -1)], dim=1)
-        return self.fc5(features)
 
 
 class Trainer(object):
@@ -266,11 +193,11 @@ class Trainer(object):
                     attention_weights = self.Q.attention_weights.squeeze().view(7, 7).cpu().numpy()
                     heatmap(obs.image[:, :, 0], attention_weights, ax=ax2)
 
-                obs, reward, done, info = self.env.step(action.item())
-                replay_buffer.store_effect(last_idx, action, reward, done)
+                    action_rot = self.env.unwrapped.actions[action.item()]
+                    logging.info('v: {:.2f}, r: {:.2f}'.format(action_rot[0], -np.rad2deg(action_rot[1])))
 
-                action_rot = self.env.unwrapped.actions[action.item()]
-                logging.debug('Action velocity: {:.2f}, rotation: {:.2f}'.format(action_rot[0], np.rad2deg(action_rot[1])))
+                    obs, reward, done, info = self.env.step(action.item())
+                replay_buffer.store_effect(last_idx, action, reward, done)
 
             logging.info(self.env.get_episode_summary())
 
@@ -543,7 +470,7 @@ def main():
     parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--with_il', default=False, action='store_true')
-    parser.add_argument('--il_training', type=str, default='mc')
+    parser.add_argument('--il_training', type=str, default='classification')
     parser.add_argument('--num_episodes', type=int, default=2000)
     parser.add_argument('--with_rl', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)
@@ -599,11 +526,9 @@ def main():
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
 
-    model_dict = {'dqn': DQN, 'daqn': DAQN}
-
     trainer = Trainer(
         env=env,
-        q_func=model_dict[args.model],
+        q_func=model_factory[args.model],
         device=device,
         output_dir=args.output_dir,
         replay_buffer_size=100000,
