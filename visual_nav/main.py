@@ -49,7 +49,7 @@ class Trainer(object):
                  gamma=0.9,
                  frame_history_len=4,
                  target_update_freq=10000,
-                 num_test_case=100,
+                 num_test_case=100
                  ):
         self.env = env
         self.device = device
@@ -168,12 +168,12 @@ class Trainer(object):
 
         return target_action, index
 
-    def test(self, visualize=False):
+    def test(self, visualize_step=False):
         logging.info('Start testing model')
         replay_buffer = ReplayBuffer(int(self.num_test_case * self.env.max_time / self.env.time_step),
                                      self.frame_history_len, self.image_size)
 
-        if visualize:
+        if visualize_step:
             _, (ax1, ax2) = plt.subplots(1, 2)
         for i in range(self.num_test_case):
             obs = self.env.reset()
@@ -183,7 +183,7 @@ class Trainer(object):
                 recent_observations = replay_buffer.encode_recent_observation()
                 action = self.act(recent_observations)
 
-                if visualize:
+                if visualize_step:
                     plt.ion()
                     plt.show()
                     ax1.imshow(obs.image[:, :, 0], cmap='gray')
@@ -479,11 +479,11 @@ def main():
     parser.add_argument('--learning_starts', type=int, default=50000)
     parser.add_argument('--reward_shaping', default=False, action='store_true')
     parser.add_argument('--curriculum_learning', default=False, action='store_true')
+    parser.add_argument('--episode_update', default=False, action='store_true')
     parser.add_argument('--test_il', default=False, action='store_true')
     parser.add_argument('--test_rl', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=50)
-    parser.add_argument('--show_image', default=False, action='store_true')
-    parser.add_argument('--episode_update', default=False, action='store_true')
+    parser.add_argument('--visualize_step', default=False, action='store_true')
     args = parser.parse_args()
 
     if args.test_il or args.test_rl:
@@ -513,13 +513,11 @@ def main():
     logging.info('Current git head hash code: {}'.format(repo.head.object.hexsha))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logging.info('Using device: %s', device)
-
-    pp = pprint.PrettyPrinter(indent=4)
     logging.info(pprint.pformat(vars(args), indent=4))
 
     # configure environment
     env = VisualSim(reward_shaping=args.reward_shaping, curriculum_learning=args.curriculum_learning)
-    env = MyMonitor(env, monitor_output_dir, args.show_image)
+    env = MyMonitor(env, monitor_output_dir)
     assert type(env.observation_space) == gym.spaces.Box
     assert type(env.action_space) == gym.spaces.Discrete
 
@@ -538,10 +536,10 @@ def main():
 
     if args.test_il:
         trainer.load_weights(os.path.join(args.output_dir, 'il_model.pth'))
-        trainer.test()
+        trainer.test(args.visualize_step)
     elif args.test_rl:
         trainer.load_weights(os.path.join(args.output_dir, 'rl_model.pth'))
-        trainer.test()
+        trainer.test(args.visualize_step)
     else:
         # imitation learning
         if args.with_il:

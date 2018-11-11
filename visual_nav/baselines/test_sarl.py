@@ -33,7 +33,7 @@ def test():
     collision = 0
     overtime = 0
     time = []
-    num_test_case = 10
+    num_test_case = 50
     for i in range(num_test_case):
         ob = env.reset()
         joint_state = env.compute_coordinate_observation()
