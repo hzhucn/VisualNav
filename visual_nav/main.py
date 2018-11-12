@@ -76,19 +76,19 @@ class Trainer(object):
         self.action_dict = {action: (i, ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r)))
                             for i, action in enumerate(self.env.unwrapped.actions)}
 
-    def imitation_learning(self, num_episodes=2000, training='mc'):
+    def imitation_learning(self, num_episodes=3000, training='mc'):
         """
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
         """
-        num_train_batch = num_episodes * 100
+        num_train_batch = num_episodes * 200
         optimizer = optim.Adam(self.Q.parameters(), lr=0.001)
         self.replay_buffer = ReplayBuffer(int(num_episodes * self.env.max_time / self.env.time_step),
                                           self.frame_history_len, self.image_size)
 
         logging.info('Start imitation learning')
         weights_file = os.path.join(self.output_dir, 'il_model.pth')
-        replay_buffer_file = 'data/replay_buffer'
+        replay_buffer_file = 'data/replay_buffer_{}'.format(num_episodes)
         if self.load_weights(weights_file):
             return
         if os.path.exists(replay_buffer_file):
@@ -107,21 +107,20 @@ class Trainer(object):
             policy.set_phase('test')
             policy.time_step = self.time_step
 
-            for episodes in range(num_episodes):
+            episode = 0
+            while True:
+                observations = []
+                effects = []
+                done = False
+                info = ''
                 obs = self.env.reset()
                 joint_state = self.env.unwrapped.compute_coordinate_observation()
-                done = False
-
-                indices = []
-                rewards = []
                 while not done:
-                    last_idx = self.replay_buffer.store_observation(obs)
+                    observations.append(obs)
                     action_xy = policy.predict(joint_state)
                     action_rot, index = self._approximate_action(action_xy)
                     obs, reward, done, info = self.env.step(action_rot)
-                    self.replay_buffer.store_effect(last_idx, torch.IntTensor([[index]]), reward, done)
-                    indices.append(last_idx)
-                    rewards.append(reward)
+                    effects.append((torch.IntTensor([[index]]), reward, done))
 
                     if done:
                         logging.info(self.env.get_episode_summary())
@@ -129,11 +128,16 @@ class Trainer(object):
 
                     joint_state = self.env.unwrapped.compute_coordinate_observation()
 
-                for i, index in enumerate(indices):
-                    value = sum([pow(self.gamma, max(t - i, 0) * self.time_step) * reward
-                                 for t, reward in enumerate(rewards)])
-                    self.replay_buffer.store_value(index, value)
-                self.replay_buffer.save(replay_buffer_file)
+                if info in ['Success', 'Collision']:
+                    episode += 1
+                    for obs, effect in zip(observations, effects):
+                        last_idx = self.replay_buffer.store_observation(obs)
+                        self.replay_buffer.store_effect(last_idx, *effect)
+                if episode > num_episodes:
+                    break
+
+            self.replay_buffer.save(replay_buffer_file)
+            logging.info('Total steps: {}'.format(self.replay_buffer.num_in_buffer))
 
         # finish collecting experience and update the model
         if training == 'mc':
@@ -183,7 +187,7 @@ class Trainer(object):
                 recent_observations = replay_buffer.encode_recent_observation()
                 action = self.act(recent_observations)
 
-                if visualize_step:
+                if visualize_step and self.Q.attention_weights is not None:
                     plt.ion()
                     plt.show()
                     ax1.imshow(obs.image[:, :, 0], cmap='gray')
@@ -468,13 +472,13 @@ def main():
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--with_il', default=True, action='store_true')
     parser.add_argument('--il_training', type=str, default='classification')
-    parser.add_argument('--num_episodes', type=int, default=2000)
+    parser.add_argument('--num_episodes', type=int, default=3000)
     parser.add_argument('--with_rl', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)
     parser.add_argument('--eps_end', type=float, default=0.1)
     parser.add_argument('--eps_decay_steps', type=int, default=1000000)
     parser.add_argument('--gamma', type=float, default=0.9)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_timesteps', type=int, default=2000000)
     parser.add_argument('--learning_starts', type=int, default=50000)
     parser.add_argument('--reward_shaping', default=False, action='store_true')
@@ -482,7 +486,7 @@ def main():
     parser.add_argument('--episode_update', default=False, action='store_true')
     parser.add_argument('--test_il', default=False, action='store_true')
     parser.add_argument('--test_rl', default=False, action='store_true')
-    parser.add_argument('--num_test_case', type=int, default=50)
+    parser.add_argument('--num_test_case', type=int, default=200)
     parser.add_argument('--visualize_step', default=False, action='store_true')
     args = parser.parse_args()
 

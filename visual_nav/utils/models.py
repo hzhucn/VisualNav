@@ -2,7 +2,7 @@ from visual_nav.utils.model_archive import *
 
 
 class GDDA(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18, with_sa=True, with_ga=True, share_embedding=False):
+    def __init__(self, in_channels=4, num_actions=18, with_sa=True, with_ga=True, share_embedding=True):
         """
         DQN with goal-dependent attention
         """

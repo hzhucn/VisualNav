@@ -60,7 +60,7 @@ class VisualSim(Env):
         self.early_reward_ratio = 0.5
 
         # human
-        self.human_num = 2
+        self.human_num = 4
         self.human_states = defaultdict(list)
         # 2.7 * 0.73
         self.human_radius = 1

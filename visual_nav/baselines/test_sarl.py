@@ -1,7 +1,8 @@
 import logging
 import configparser
 import os
-
+import argparse
+import pprint
 import torch
 import gym
 from visual_sim.envs.visual_sim import VisualSim
@@ -9,11 +10,18 @@ from crowd_nav.policy.sarl import SARL
 
 
 def test():
+    parser = argparse.ArgumentParser('Parse test configuration')
+    parser.add_argument('--num_test_case', type=int, default=50)
+    parser.add_argument('--human_num', type=int, default=2)
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s, %(levelname)s: %(message)s',
                         datefmt="%Y-%m-%d %H:%M:%S")
+    logging.info(pprint.pformat(args))
 
     env = gym.make('VisualSim-v0')
     env = VisualSim()
+    env.human_num = args.human_num
 
     # configure SARL
     model_dir = 'crowdnav_data/orca_square_20p_nearest_10p_invisible/sarl_without_global_state'
