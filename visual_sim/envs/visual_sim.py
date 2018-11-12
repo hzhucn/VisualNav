@@ -83,7 +83,7 @@ class VisualSim(Env):
         self.client = None
 
     def reset(self):
-        # connect with server 
+        # connect with server
         if self.client is None:
             if self.robot_dynamics:
                 client = airsim.CarClient()
