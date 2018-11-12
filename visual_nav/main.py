@@ -152,7 +152,7 @@ class Trainer(object):
         torch.save(self.Q.state_dict(), weights_file)
         logging.info('Save imitation learning trained weights to {}'.format(weights_file))
 
-        self.test()
+        # self.test()
 
     def _approximate_action(self, demonstration):
         """ Approximate demonstration action with closest target action"""

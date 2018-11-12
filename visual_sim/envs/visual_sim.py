@@ -80,17 +80,21 @@ class VisualSim(Env):
         self.image_type = image_type
         self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
 
-        if self.robot_dynamics:
-            client = airsim.CarClient()
-            client.enableApiControl(True)
-            client.confirmConnection()
-        else:
-            client = airsim.VehicleClient()
-        self.client = client
-        if self.blocking:
-            self.client.simPause(True)
+        self.client = None
 
     def reset(self):
+        # connect with server 
+        if self.client is None:
+            if self.robot_dynamics:
+                client = airsim.CarClient()
+                client.enableApiControl(True)
+                client.confirmConnection()
+            else:
+                client = airsim.VehicleClient()
+            self.client = client
+            if self.blocking:
+                self.client.simPause(True)
+
         self.time = 0
         self.human_states = defaultdict(list)
         self.robot_states = list()
