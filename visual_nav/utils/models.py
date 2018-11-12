@@ -34,7 +34,7 @@ class GDDA(nn.Module):
             conv_feature_dim = 64 * 7 * 7
 
         # action classification layers
-        self.fc4 = nn.Linear(conv_feature_dim, 512)
+        self.fc4 = nn.Linear(conv_feature_dim + 8, 520)
         self.fc5 = nn.Linear(520, num_actions)
 
         # for visualization
@@ -84,9 +84,11 @@ class GDDA(nn.Module):
             conv_features = feature_maps.view(frames.size(0), -1)
 
         # action classification
-        fc4_outputs = F.relu(self.fc4(conv_features))
-        fc5_outputs = self.fc5(torch.cat([fc4_outputs, goals.view(goals.size(0), -1)], dim=1))
-        return fc5_outputs
+        # TODO: use goal feature from the embedded space
+        fc_inputs = torch.cat([conv_features, goals.view(goals.size(0), -1)], dim=1)
+        outputs = F.relu(self.fc4(fc_inputs))
+        outputs = self.fc5(outputs)
+        return outputs
 
 
 class GDA(GDDA):
