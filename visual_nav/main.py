@@ -81,7 +81,7 @@ class Trainer(object):
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
         """
-        num_train_batch = num_episodes * 200
+        num_train_batch = num_episodes * 50
         optimizer = optim.Adam(self.Q.parameters(), lr=0.001)
         self.replay_buffer = ReplayBuffer(int(num_episodes * self.env.max_time / self.env.time_step),
                                           self.frame_history_len, self.image_size)

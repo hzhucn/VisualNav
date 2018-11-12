@@ -79,6 +79,7 @@ class VisualSim(Env):
         # observation_space
         self.image_type = image_type
         self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
+        self.fov = np.pi / 2
 
         self.client = None
 
@@ -242,20 +243,8 @@ class VisualSim(Env):
             self.human_states[i].append(pose)
         self.robot_states.append(self.client.simGetVehiclePose())
 
-    def compute_coordinate_observation(self, fov=True):
+    def compute_coordinate_observation(self, with_fov=False):
         # Todo: only consider humans in FOV
-        human_states = []
-        for i in range(self.human_num):
-            if len(self.human_states[i]) == 1:
-                vx = vy = 0
-            else:
-                vx = (self.human_states[i][-1].position.x_val - self.human_states[i][-2].position.x_val) / self.time_step
-                vy = (self.human_states[i][-1].position.y_val - self.human_states[i][-2].position.y_val) / self.time_step
-            px = self.human_states[i][-1].position.x_val
-            py = self.human_states[i][-1].position.y_val
-            human_state = ObservableState(px, py, vx, vy, self.human_radius)
-            human_states.append(human_state)
-
         px = self.robot_states[-1].position.x_val
         py = self.robot_states[-1].position.y_val
         if len(self.robot_states) == 1:
@@ -270,6 +259,27 @@ class VisualSim(Env):
         v_pref = 1
         _, _, theta = airsim.to_eularian_angles(self.robot_states[-1].orientation)
         robot_state = FullState(px, py, vx, vy, r, gx, gy, v_pref, theta)
+
+        human_states = []
+        for i in range(self.human_num):
+            if len(self.human_states[i]) == 1:
+                vx = vy = 0
+            else:
+                vx = (self.human_states[i][-1].position.x_val - self.human_states[i][-2].position.x_val) / self.time_step
+                vy = (self.human_states[i][-1].position.y_val - self.human_states[i][-2].position.y_val) / self.time_step
+            px = self.human_states[i][-1].position.x_val
+            py = self.human_states[i][-1].position.y_val
+
+            if with_fov:
+                angle = np.arctan2(py - robot_state.py, px - robot_state.px)
+                if abs(angle - robot_state.theta) > self.fov / 2:
+                    continue
+
+            human_state = ObservableState(px, py, vx, vy, self.human_radius)
+            human_states.append(human_state)
+
+        if not human_states:
+            human_states.append(ObservableState(-6, 0, 0, 0, self.human_radius))
 
         joint_state = JointState(robot_state, human_states)
 

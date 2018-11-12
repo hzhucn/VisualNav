@@ -12,7 +12,8 @@ from crowd_nav.policy.sarl import SARL
 def test():
     parser = argparse.ArgumentParser('Parse test configuration')
     parser.add_argument('--num_test_case', type=int, default=50)
-    parser.add_argument('--human_num', type=int, default=2)
+    parser.add_argument('--human_num', type=int, default=4)
+    parser.add_argument('--with_fov', default=False, action='store_true')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s, %(levelname)s: %(message)s',
@@ -41,15 +42,15 @@ def test():
     collision = 0
     overtime = 0
     time = []
-    num_test_case = 50
+    num_test_case = args.num_test_case
     for i in range(num_test_case):
         ob = env.reset()
-        joint_state = env.compute_coordinate_observation()
+        joint_state = env.compute_coordinate_observation(args.with_fov)
         done = False
         while not done:
             action = policy.predict(joint_state)
             ob, reward, done, info = env.step(action)
-            joint_state = env.compute_coordinate_observation()
+            joint_state = env.compute_coordinate_observation(args.with_fov)
             if info == 'Success':
                 success += 1
                 time.append(env.time)

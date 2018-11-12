@@ -2,14 +2,17 @@ from visual_nav.utils.model_archive import *
 
 
 class GDDA(nn.Module):
-    def __init__(self, in_channels=4, num_actions=18, with_sa=True, with_ga=True, share_embedding=True):
+    def __init__(self, in_channels=4, num_actions=18, with_sa=True, with_ga=True):
         """
         DQN with goal-dependent attention
         """
         super(GDDA, self).__init__()
         self.with_sa = with_sa
         self.with_ga = with_ga
-        self.share_embedding = share_embedding
+        if with_sa and with_ga:
+            self.share_embedding = True
+        else:
+            self.share_embedding = False
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
@@ -25,7 +28,7 @@ class GDDA(nn.Module):
 
         if with_ga:
             # goal-driven attention
-            if not share_embedding:
+            if not self.share_embedding:
                 self.theta2 = nn.Conv2d(64, 32, 1)
             self.alpha = nn.Linear(8, 32)
             conv_feature_dim = 64 * 1 * 1
@@ -34,7 +37,7 @@ class GDDA(nn.Module):
             conv_feature_dim = 64 * 7 * 7
 
         # action classification layers
-        self.fc4 = nn.Linear(conv_feature_dim + 8, 520)
+        self.fc4 = nn.Linear(conv_feature_dim + 32, 520)
         self.fc5 = nn.Linear(520, num_actions)
 
         # for visualization
@@ -79,13 +82,15 @@ class GDDA(nn.Module):
             # compute aggregated feature
             # -> b, 49, 64
             last_feature_maps = last_feature_maps.view(batch_size, 64, 49).permute(0, 2, 1)
-            conv_features = torch.sum(torch.mul(last_feature_maps, attention_weights), dim=1)
+            image_features = torch.sum(torch.mul(last_feature_maps, attention_weights), dim=1)
+            goal_features = alpha_g.squeeze(2)
         else:
-            conv_features = feature_maps.view(frames.size(0), -1)
+            image_features = feature_maps.view(frames.size(0), -1)
+            goal_features = goals.view(goals.size(0), -1)
 
         # action classification
         # TODO: use goal feature from the embedded space
-        fc_inputs = torch.cat([conv_features, goals.view(goals.size(0), -1)], dim=1)
+        fc_inputs = torch.cat([image_features, goal_features], dim=1)
         outputs = F.relu(self.fc4(fc_inputs))
         outputs = self.fc5(outputs)
         return outputs
