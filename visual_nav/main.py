@@ -459,7 +459,7 @@ class Trainer(object):
             if self.num_param_updates % self.log_every_n_steps == 0:
                 logging.info('Batch loss: {:.4f} after {} batches'.format(loss.item(), self.num_param_updates))
 
-    def _action_classification_epoch(self, optimizer, criterion, num_train_epochs, step_size):
+    def _action_classification_epoch(self, optimizer, criterion, num_train_epochs, step_size, use_best_wts=False):
         # construct dataloader and store experiences in dataset
         datasets = {split: BufferWrapper(self.replay_buffer, split) for split in ['train', 'val', 'test']}
         dataloaders = {split: DataLoader(datasets[split], self.batch_size, shuffle=True, collate_fn=pack_batch)
@@ -478,7 +478,7 @@ class Trainer(object):
 
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
-                if phase == 'train':
+                if phase == 'train' and epoch != 0:
                     scheduler.step()
                     model.train(True)  # Set model to training mode
                 else:
@@ -502,7 +502,7 @@ class Trainer(object):
                     loss = criterion(predicted_actions, action_batch)
 
                     # backward + optimize only if in training phase
-                    if phase == 'train':
+                    if phase == 'train' and epoch != 0:
                         loss.backward()
                         optimizer.step()
                     # statistics
@@ -518,7 +518,8 @@ class Trainer(object):
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
                     best_acc = epoch_acc
-                    best_model_wts = copy.deepcopy(model.state_dict())
+                    if use_best_wts:
+                        best_model_wts = copy.deepcopy(model.state_dict())
 
         time_elapsed = time.time() - since
         logging.info('Training complete in {:.0f}m {:.0f}s'.format(
@@ -526,7 +527,8 @@ class Trainer(object):
         logging.info('Best val Acc: {:4f}'.format(best_acc))
 
         # load best model weights
-        model.load_state_dict(best_model_wts)
+        if use_best_wts:
+            model.load_state_dict(best_model_wts)
 
         # test model
         phase = 'test'
@@ -576,8 +578,8 @@ def main():
     parser.add_argument('--with_il', default=True, action='store_true')
     parser.add_argument('--il_training', type=str, default='classification')
     parser.add_argument('--num_episodes', type=int, default=3000)
-    parser.add_argument('--num_epochs', type=int, default=50)
-    parser.add_argument('--step_size', type=int, default=30)
+    parser.add_argument('--num_epochs', type=int, default=150)
+    parser.add_argument('--step_size', type=int, default=150)
     parser.add_argument('--frame_history_len', type=int, default=1)
     parser.add_argument('--with_rl', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)

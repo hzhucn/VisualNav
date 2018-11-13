@@ -1,4 +1,4 @@
-MODEL_DIR=run3
+MODEL_DIR=run7_overfit_single_frame_150_epochs
 
 CUDA_VISIBLE_DEVICES=0 py main.py --model plain_cnn --output_dir data/$MODEL_DIR/plain_cnn
 
