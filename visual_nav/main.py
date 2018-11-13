@@ -218,7 +218,7 @@ class Trainer(object):
                         angle = np.arctan2(human_state.py - robot_state.py, human_state.px - robot_state.px)
                         relative_angle = angle - robot_state.theta
                         if abs(relative_angle) < (self.env.unwrapped.fov + np.pi / 6) / 2:
-                            human_directions.append((angle, demonstrator_attention[human_index]))
+                            human_directions.append((relative_angle, demonstrator_attention[human_index]))
 
                     # sort humans in the order of importance
                     human_directions = sorted(human_directions, key=itemgetter(1), reverse=True)
