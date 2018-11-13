@@ -261,8 +261,8 @@ class Trainer(object):
 
             logging.info(self.env.get_episode_summary() + ' with attention diff: {:.2f} and random diff: {:.2f}'.
                          format(np.mean(episode_attention_diff), np.mean(episode_random_diff)))
-            cumulative_attention_diff.append(episode_attention_diff)
-            cumulative_random_diff.append(episode_random_diff)
+            cumulative_attention_diff.append(np.mean(episode_attention_diff))
+            cumulative_random_diff.append(np.mean(episode_random_diff))
 
         logging.info(self.env.get_episodes_summary(num_last_episodes=self.num_test_case))
         logging.info('Average attention direction difference: {:.4f}'.format(np.mean(cumulative_attention_diff)))
