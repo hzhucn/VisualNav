@@ -53,8 +53,9 @@ class GDNet(nn.Module):
             goal_feature_dim = self.D
 
         # action classification layers
-        self.fc4 = nn.Linear(image_feature_dim + goal_feature_dim, 520)
-        self.fc5 = nn.Linear(520, num_actions)
+        self.fc4 = nn.Linear(image_feature_dim + goal_feature_dim, 256)
+        self.fc5 = nn.Linear(256, 520)
+        self.fc6 = nn.Linear(520, num_actions)
 
         # for visualization
         self.attention_weights = None
@@ -116,7 +117,8 @@ class GDNet(nn.Module):
         # action classification
         fc_inputs = torch.cat([image_features, goal_features], dim=1)
         outputs = F.relu(self.fc4(fc_inputs))
-        outputs = self.fc5(outputs)
+        outputs = F.relu(self.fc5(outputs))
+        outputs = self.fc6(outputs)
         return outputs
 
 

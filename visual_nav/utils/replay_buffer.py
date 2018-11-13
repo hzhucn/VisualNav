@@ -302,8 +302,8 @@ class BufferWrapper(Dataset):
         return self.end_index - self.start_index
 
     def __getitem__(self, idx):
-        frames, goals = self.replay_buffer.encode_observation(idx)
-        action = self.replay_buffer.action[idx]
+        frames, goals = self.replay_buffer.encode_observation(idx + self.start_index)
+        action = self.replay_buffer.action[idx + self.start_index]
         return frames, goals, action
 
 
