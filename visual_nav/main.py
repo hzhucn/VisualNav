@@ -1,6 +1,8 @@
 import sys
 from collections import namedtuple
 from itertools import count
+import time
+import copy
 import random
 import logging
 import os
@@ -16,18 +18,19 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim import lr_scheduler
+from torch.utils.data.dataloader import DataLoader
 from tensorboardX import SummaryWriter
 import matplotlib.pyplot as plt
 
 from crowd_sim.envs.utils.action import ActionXY
 from crowd_nav.policy.sarl import SARL
 from visual_sim.envs.visual_sim import VisualSim
-from visual_nav.utils.replay_buffer import ReplayBuffer
+from visual_nav.utils.replay_buffer import ReplayBuffer, BufferWrapper, pack_batch
 from visual_nav.utils.my_monitor import MyMonitor
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_nav.utils.heatmap import heatmap
 from visual_nav.utils.models import model_factory
-
 
 
 """
@@ -76,7 +79,7 @@ class Trainer(object):
         self.action_dict = {action: (i, ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r)))
                             for i, action in enumerate(self.env.unwrapped.actions)}
 
-    def imitation_learning(self, num_episodes=3000, training='mc'):
+    def imitation_learning(self, num_episodes=3000, training='mc', num_epochs=500, step_size=100):
         """
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
@@ -145,7 +148,8 @@ class Trainer(object):
             self._mc_update(optimizer, criterion, num_train_batch)
         elif training == 'classification':
             criterion = nn.CrossEntropyLoss().to(self.device)
-            self._action_classification(optimizer, criterion, num_train_batch)
+            # self._action_classification_batch(optimizer, criterion, num_train_batch)
+            self._action_classification_epoch(optimizer, criterion, num_epochs, step_size)
         else:
             raise NotImplementedError
 
@@ -434,7 +438,7 @@ class Trainer(object):
             if self.num_param_updates % self.target_update_freq == 0:
                 self.target_Q.load_state_dict(self.Q.state_dict())
 
-    def _action_classification(self, optimizer, criterion, num_train_batch):
+    def _action_classification_batch(self, optimizer, criterion, num_train_batch):
         for _ in range(num_train_batch):
             frames_batch, goals_batch, action_batch, _, _, _, done_mask = \
                 self.replay_buffer.sample(self.batch_size)
@@ -455,6 +459,106 @@ class Trainer(object):
             if self.num_param_updates % self.log_every_n_steps == 0:
                 logging.info('Batch loss: {:.4f} after {} batches'.format(loss.item(), self.num_param_updates))
 
+    def _action_classification_epoch(self, optimizer, criterion, num_train_epochs, step_size):
+        # construct dataloader and store experiences in dataset
+        datasets = {split: BufferWrapper(self.replay_buffer, split='train')
+                    for split in ['train', 'val', 'test']}
+        dataloaders = {split: DataLoader(datasets[split], self.batch_size, shuffle=True, collate_fn=pack_batch)
+                       for split in ['train', 'val', 'test']}
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)
+
+        model = self.Q
+        since = time.time()
+
+        best_model_wts = copy.deepcopy(model.state_dict())
+        best_acc = 0.0
+
+        for epoch in range(num_train_epochs):
+            logging.info('-' * 10)
+            logging.info('Epoch {}/{}'.format(epoch, num_train_epochs - 1))
+
+            # Each epoch has a training and validation phase
+            for phase in ['train', 'val']:
+                if phase == 'train':
+                    scheduler.step()
+                    model.train(True)  # Set model to training mode
+                else:
+                    model.train(False)  # Set model to evaluate mode
+
+                running_loss = 0.0
+                running_corrects = 0
+
+                # Iterating over data once is one epoch
+                for data in dataloaders[phase]:
+                    # get the inputs
+                    frames_batch, goals_batch, action_batch = data
+                    frames_batch = frames_batch.to(self.device) / 255.0
+                    goals_batch = goals_batch.to(self.device)
+                    action_batch = action_batch.long().to(self.device)
+
+                    # zero the parameter gradients and forward
+                    optimizer.zero_grad()
+                    predicted_actions = model(frames_batch, goals_batch)
+                    _, preds = torch.max(predicted_actions.data, 1)
+                    loss = criterion(predicted_actions, action_batch)
+
+                    # backward + optimize only if in training phase
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+                    # statistics
+                    running_loss += loss.data.item() * frames_batch.size(0)
+                    running_corrects += torch.sum(preds == action_batch.data).item()
+
+                epoch_loss = running_loss / len(datasets[phase])
+                epoch_acc = running_corrects / len(datasets[phase])
+
+                logging.info('{} Loss: {:.4f} Acc: {:.4f}'.format(
+                    phase, epoch_loss, epoch_acc))
+
+                # deep copy the model
+                if phase == 'val' and epoch_acc > best_acc:
+                    best_acc = epoch_acc
+                    best_model_wts = copy.deepcopy(model.state_dict())
+
+        time_elapsed = time.time() - since
+        logging.info('Training complete in {:.0f}m {:.0f}s'.format(
+            time_elapsed // 60, time_elapsed % 60))
+        logging.info('Best val Acc: {:4f}'.format(best_acc))
+
+        # load best model weights
+        model.load_state_dict(best_model_wts)
+
+        # test model
+        phase = 'test'
+        model.train(False)
+        running_loss = 0.0
+        running_corrects = 0
+        # Iterating over data once is one epoch
+        for data in dataloaders[phase]:
+            # get the inputs
+            frames_batch, goals_batch, action_batch = data
+            frames_batch = frames_batch.to(self.device) / 255.0
+            goals_batch = goals_batch.to(self.device)
+            action_batch = action_batch.long().to(self.device)
+
+            # zero the parameter gradients and forward
+            optimizer.zero_grad()
+            predicted_actions = model(frames_batch, goals_batch)
+            _, preds = torch.max(predicted_actions.data, 1)
+            loss = criterion(predicted_actions, action_batch)
+
+            # statistics
+            running_loss += loss.data.item() * frames_batch.size(0)
+            running_corrects += torch.sum(preds == action_batch.data).item()
+
+        epoch_loss = running_loss / len(datasets[phase])
+        epoch_acc = running_corrects / len(datasets[phase])
+
+        logging.info('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+
+        return model, best_acc
+
     def load_weights(self, weights_file):
         if os.path.exists(weights_file):
             self.Q.load_state_dict(torch.load(weights_file))
@@ -473,6 +577,8 @@ def main():
     parser.add_argument('--with_il', default=True, action='store_true')
     parser.add_argument('--il_training', type=str, default='classification')
     parser.add_argument('--num_episodes', type=int, default=3000)
+    parser.add_argument('--num_epochs', type=int, default=200)
+    parser.add_argument('--step_size', type=int, default=50)
     parser.add_argument('--with_rl', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)
     parser.add_argument('--eps_end', type=float, default=0.1)
@@ -514,10 +620,11 @@ def main():
     logging.basicConfig(level=level, handlers=[stdout_handler, file_handler],
                         format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
     repo = git.Repo(search_parent_directories=True)
-    logging.info('Current git head hash code: {}'.format(repo.head.object.hexsha))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    logging.info('Using device: %s', device)
-    logging.info(pprint.pformat(vars(args), indent=4))
+    if not args.test_il and not args.test_rl:
+        logging.info('Current git head hash code: {}'.format(repo.head.object.hexsha))
+        logging.info('Using device: %s', device)
+        logging.info(pprint.pformat(vars(args), indent=4))
 
     # configure environment
     env = VisualSim(reward_shaping=args.reward_shaping, curriculum_learning=args.curriculum_learning)
@@ -549,7 +656,9 @@ def main():
         if args.with_il:
             trainer.imitation_learning(
                 num_episodes=args.num_episodes,
-                training=args.il_training
+                training=args.il_training,
+                num_epochs=args.num_epochs,
+                step_size=args.step_size
             )
 
         # reinforcement learning

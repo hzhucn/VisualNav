@@ -4,9 +4,12 @@
 import random
 import os
 import shutil
+import logging
+
 from PIL import Image
 import numpy as np
-import logging
+from torch.utils.data import Dataset
+import torch
 
 
 def sample_n_unique(sampling_f, n):
@@ -21,7 +24,7 @@ def sample_n_unique(sampling_f, n):
     return res
 
 
-class ReplayBuffer(object):
+class ReplayBuffer(Dataset):
     def __init__(self, size, frame_history_len, image_size):
         """This is a memory efficient implementation of the replay buffer.
 
@@ -62,6 +65,12 @@ class ReplayBuffer(object):
         self.done = None
         self.value = None
 
+    def __len__(self):
+        return self.num_in_buffer
+
+    def __getitem__(self, idx):
+        return self.encode_observation(idx)
+
     def can_sample(self, batch_size):
         """Returns true if `batch_size` different transitions can be sampled from the buffer."""
         return batch_size + 1 <= self.num_in_buffer
@@ -70,7 +79,7 @@ class ReplayBuffer(object):
         frames_batch = []
         goals_batch = []
         for idx in idxes:
-            frames, goals = self._encode_observation(idx)
+            frames, goals = self.encode_observation(idx)
             frames_batch.append(frames[np.newaxis, :])
             goals_batch.append(goals[np.newaxis, :])
         frames_batch = np.concatenate(frames_batch, 0)
@@ -82,7 +91,7 @@ class ReplayBuffer(object):
         next_frames_batch = []
         next_goals_batch = []
         for idx in idxes:
-            next_frames, next_goals = self._encode_observation(idx + 1)
+            next_frames, next_goals = self.encode_observation(idx + 1)
             next_frames_batch.append(next_frames[np.newaxis, :])
             next_goals_batch.append(next_goals[np.newaxis, :])
         next_frames_batch = np.concatenate(next_frames_batch, 0)
@@ -145,9 +154,9 @@ class ReplayBuffer(object):
             encodes frame at time `t - frame_history_len + i`
         """
         assert self.num_in_buffer > 0
-        return self._encode_observation((self.next_idx - 1) % self.size)
+        return self.encode_observation((self.next_idx - 1) % self.size)
 
-    def _encode_observation(self, idx):
+    def encode_observation(self, idx):
         end_idx = idx + 1  # make noninclusive
         start_idx = end_idx - self.frame_history_len
         # if there weren't enough frames ever in the buffer for context
@@ -277,3 +286,31 @@ class ReplayBuffer(object):
         with open(os.path.join(input_dir, 'num_in_buffer.txt'), 'r') as fo:
             self.num_in_buffer = int(fo.read())
             logging.info('The replay buffer loaded in {}'.format(input_dir))
+
+
+class BufferWrapper(Dataset):
+    def __init__(self, replay_buffer, split):
+        self.replay_buffer = replay_buffer
+        self.split = split
+
+        # percentage range for different splits:
+        split_percentages = {'train': (0, 0.7), 'val': (0.7, 0.8), 'test': (0.8, 1)}
+        self.start_index = int(len(self.replay_buffer) * split_percentages[split][0])
+        self.end_index = int(len(self.replay_buffer) * split_percentages[split][1])
+
+    def __len__(self):
+        return self.end_index - self.start_index
+
+    def __getitem__(self, idx):
+        frames, goals = self.replay_buffer.encode_observation(idx)
+        action = self.replay_buffer.action[idx]
+        return frames, goals, action
+
+
+def pack_batch(batch):
+    frame_batch = torch.cat([torch.from_numpy(t[0]).unsqueeze(0) for t in batch], dim=0)
+    goal_batch = torch.cat([torch.from_numpy(t[1]).unsqueeze(0) for t in batch], dim=0)
+    action_batch = torch.cat([torch.Tensor([t[2]]) for t in batch], dim=0)
+
+    return frame_batch, goal_batch, action_batch
+
