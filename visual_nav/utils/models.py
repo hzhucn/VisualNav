@@ -88,7 +88,7 @@ class GDNet(nn.Module):
 
         if self.with_ga:
             # -> b, 1, 32
-            alpha_g = self.alpha(goals.view(-1, 8)).unsqueeze(2)
+            alpha_g = self.alpha(goals.view(-1, self.D)).unsqueeze(2)
             # -> b, 49, 1, batched matrix multiplication
             if self.share_image_embedding:
                 attention_scores = torch.matmul(theta_x, alpha_g)

@@ -1,6 +1,5 @@
 import sys
 from collections import namedtuple
-from itertools import count
 import time
 import copy
 import random
@@ -577,8 +576,8 @@ def main():
     parser.add_argument('--with_il', default=True, action='store_true')
     parser.add_argument('--il_training', type=str, default='classification')
     parser.add_argument('--num_episodes', type=int, default=3000)
-    parser.add_argument('--num_epochs', type=int, default=200)
-    parser.add_argument('--step_size', type=int, default=100)
+    parser.add_argument('--num_epochs', type=int, default=50)
+    parser.add_argument('--step_size', type=int, default=30)
     parser.add_argument('--frame_history_len', type=int, default=1)
     parser.add_argument('--with_rl', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)
@@ -622,6 +621,7 @@ def main():
                         format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
     repo = git.Repo(search_parent_directories=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    logging.info(sys.argv)
     if not args.test_il and not args.test_rl:
         logging.info('Current git head hash code: {}'.format(repo.head.object.hexsha))
         logging.info('Using device: %s', device)
