@@ -30,10 +30,11 @@ for model in models:
     test_pattern = r"Best val Acc: (?P<best_val_acc>[0-1].\d+).*\n" \
                    r".*test Loss: (?P<test_loss>[0-1].\d+) Acc: (?P<test_acc>0.\d+)"
     test_logs = re.findall(test_pattern, log)
-    if not test_logs:
-        raise ValueError('Cannot find test patter in {}'.format(model_dir))
-    print('{:<15}: best val acc: {:.2f}, test loss: {:.2f}, test acc: {:.2f}'.
-          format(model, float(test_logs[0][0]), float(test_logs[0][1]), float(test_logs[0][2])))
+    if test_logs:
+        print('{:<15}: best val acc: {:.2f}, test loss: {:.2f}, test acc: {:.2f}'.
+              format(model, float(test_logs[0][0]), float(test_logs[0][1]), float(test_logs[0][2])))
+    else:
+        print('Cannot find test patter in {}'.format(model_dir))
 
 
 if args.plot:

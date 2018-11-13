@@ -71,7 +71,8 @@ class Trainer(object):
 
         self.Q = q_func(input_arg, self.num_actions).to(device)
         self.target_Q = q_func(input_arg, self.num_actions).to(device)
-        self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len, self.image_size)
+        # self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len, self.image_size)
+        self.replay_buffer = None
 
         self.log_every_n_steps = 10000
         self.num_param_updates = 0
@@ -577,8 +578,9 @@ def main():
     parser.add_argument('--with_il', default=True, action='store_true')
     parser.add_argument('--il_training', type=str, default='classification')
     parser.add_argument('--num_episodes', type=int, default=3000)
-    parser.add_argument('--num_epochs', type=int, default=500)
-    parser.add_argument('--step_size', type=int, default=200)
+    parser.add_argument('--num_epochs', type=int, default=200)
+    parser.add_argument('--step_size', type=int, default=100)
+    parser.add_argument('--frame_history_len', type=int, default=1)
     parser.add_argument('--with_rl', default=False, action='store_true')
     parser.add_argument('--eps_start', type=float, default=1)
     parser.add_argument('--eps_end', type=float, default=0.1)
@@ -640,7 +642,7 @@ def main():
         replay_buffer_size=100000,
         batch_size=args.batch_size,
         gamma=args.gamma,
-        frame_history_len=4,
+        frame_history_len=args.frame_history_len,
         target_update_freq=10000,
         num_test_case=args.num_test_case
     )
