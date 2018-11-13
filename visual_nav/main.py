@@ -9,6 +9,7 @@ import argparse
 import shutil
 import pprint
 import configparser
+from operator import itemgetter
 
 import git
 import gym
@@ -28,7 +29,7 @@ from visual_sim.envs.visual_sim import VisualSim
 from visual_nav.utils.replay_buffer import ReplayBuffer, BufferWrapper, pack_batch
 from visual_nav.utils.my_monitor import MyMonitor
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
-from visual_nav.utils.heatmap import heatmap
+from visual_nav.utils.visualization_tools import heatmap, top_down_view
 from visual_nav.utils.models import model_factory
 
 
@@ -97,19 +98,7 @@ class Trainer(object):
         if os.path.exists(replay_buffer_file):
             self.replay_buffer.load(replay_buffer_file)
         else:
-            model_dir = 'data/sarl'
-            assert os.path.exists(model_dir)
-            policy = SARL()
-            policy.epsilon = 0
-            policy_config = configparser.RawConfigParser()
-            policy_config.read(os.path.join(model_dir, 'policy.config'))
-            policy.configure(policy_config)
-            policy.model.load_state_dict(torch.load(os.path.join(model_dir, 'rl_model.pth')))
-
-            policy.set_device(torch.device('cpu'))
-            policy.set_phase('test')
-            policy.time_step = self.time_step
-
+            demonstrator = self.initialize_demonstrator()
             episode = 0
             while True:
                 observations = []
@@ -120,7 +109,7 @@ class Trainer(object):
                 joint_state = self.env.unwrapped.compute_coordinate_observation()
                 while not done:
                     observations.append(obs)
-                    action_xy = policy.predict(joint_state)
+                    action_xy = demonstrator.predict(joint_state)
                     action_rot, index = self._approximate_action(action_xy)
                     obs, reward, done, info = self.env.step(action_rot)
                     effects.append((torch.IntTensor([[index]]), reward, done))
@@ -176,37 +165,108 @@ class Trainer(object):
 
         return target_action, index
 
+    def initialize_demonstrator(self):
+        model_dir = 'data/sarl'
+        assert os.path.exists(model_dir)
+        policy = SARL()
+        policy.epsilon = 0
+        policy_config = configparser.RawConfigParser()
+        policy_config.read(os.path.join(model_dir, 'policy.config'))
+        policy.configure(policy_config)
+        policy.model.load_state_dict(torch.load(os.path.join(model_dir, 'rl_model.pth')))
+
+        policy.set_device(torch.device('cpu'))
+        policy.set_phase('test')
+        policy.time_step = self.time_step
+
+        return policy
+
     def test(self, visualize_step=False):
         logging.info('Start testing model')
         replay_buffer = ReplayBuffer(int(self.num_test_case * self.env.max_time / self.env.time_step),
                                      self.frame_history_len, self.image_size)
 
+        demonstrator = None
+        cumulative_attention_diff = []
+        cumulative_random_diff = []
         if visualize_step:
-            _, (ax1, ax2) = plt.subplots(1, 2)
+            _, (ax1, ax2, ax3) = plt.subplots(1, 3)
         for i in range(self.num_test_case):
             obs = self.env.reset()
             done = False
+
+            episode_attention_diff = []
+            episode_random_diff = []
             while not done:
                 last_idx = replay_buffer.store_observation(obs)
                 recent_observations = replay_buffer.encode_recent_observation()
                 action = self.act(recent_observations)
 
-                if visualize_step and self.Q.attention_weights is not None:
-                    plt.ion()
-                    plt.show()
-                    ax1.imshow(obs.image[:, :, 0], cmap='gray')
-                    attention_weights = self.Q.attention_weights.squeeze().view(7, 7).cpu().numpy()
-                    heatmap(obs.image[:, :, 0], attention_weights, ax=ax2)
+                if self.Q.attention_weights is not None:
+                    if demonstrator is None:
+                        demonstrator = self.initialize_demonstrator()
+                    # compute the similarity of two attention models
+                    gt_obs = self.env.unwrapped.compute_coordinate_observation()
+                    _ = demonstrator.predict(gt_obs)
+                    demonstrator_attention = demonstrator.model.attention_weights
 
-                    action_rot = self.env.unwrapped.actions[action.item()]
-                    logging.info('v: {:.2f}, r: {:.2f}'.format(action_rot[0], -np.rad2deg(action_rot[1])))
+                    # choose humans within FOV
+                    robot_state = gt_obs.self_state
+                    human_states = gt_obs.human_states
+                    human_directions = []
+                    for human_index, human_state in enumerate(human_states):
+                        angle = np.arctan2(human_state.py - robot_state.py, human_state.px - robot_state.px)
+                        relative_angle = angle - robot_state.theta
+                        if abs(relative_angle) < (self.env.unwrapped.fov + np.pi / 6) / 2:
+                            human_directions.append((angle, demonstrator_attention[human_index]))
+
+                    # sort humans in the order of importance
+                    human_directions = sorted(human_directions, key=itemgetter(1), reverse=True)
+
+                    # compute the direction the agent is attending to
+                    agent_attention = self.Q.attention_weights.squeeze().cpu().numpy()
+                    max_cell_index = np.argmax(agent_attention)
+                    # include body parts
+                    fov = self.env.unwrapped.fov
+                    horizontal_cell_index = max_cell_index % self.Q.W
+                    cell_fov = fov / self.Q.W
+                    agent_attention_directions = -fov / 2 + (horizontal_cell_index - 0.5) * cell_fov
+
+                    # compute the distance between two attention directions
+                    random_direction = np.random.uniform(-fov / 2, fov / 2)
+                    if human_directions:
+                        attention_diff = abs(human_directions[0][0] - agent_attention_directions)
+                        random_diff = abs(human_directions[0][0] - random_direction)
+                    else:
+                        attention_diff = 0
+                        random_diff = 0
+                    episode_attention_diff.append(attention_diff)
+                    episode_random_diff.append(random_diff)
+
+                    if visualize_step:
+                        plt.axis('scaled')
+                        plt.ion()
+                        plt.show()
+                        ax1.imshow(obs.image[:, :, 0], cmap='gray')
+                        attention_weights = self.Q.attention_weights.squeeze().view(7, 7).cpu().numpy()
+                        heatmap(obs.image[:, :, 0], attention_weights, ax=ax2)
+                        gt_obs = self.env.unwrapped.compute_coordinate_observation()
+                        top_down_view(gt_obs, ax3)
+
+                    # action_rot = self.env.unwrapped.actions[action.item()]
+                    # logging.info('v: {:.2f}, r: {:.2f}'.format(action_rot[0], -np.rad2deg(action_rot[1])))
 
                 obs, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
 
-            logging.info(self.env.get_episode_summary())
+            logging.info(self.env.get_episode_summary() + ' with attention diff: {:.2f} and random diff: {:.2f}'.
+                         format(np.mean(episode_attention_diff), np.mean(episode_random_diff)))
+            cumulative_attention_diff.append(episode_attention_diff)
+            cumulative_random_diff.append(episode_random_diff)
 
         logging.info(self.env.get_episodes_summary(num_last_episodes=self.num_test_case))
+        logging.info('Average attention direction difference: {:.4f}'.format(np.mean(cumulative_attention_diff)))
+        logging.info('Random attention direction difference: {:.4f}'.format(np.mean(cumulative_random_diff)))
 
     def reinforcement_learning(self, optimizer_spec, exploration, learning_starts=50000,
                                learning_freq=4, num_timesteps=2000000, episode_update=False):
