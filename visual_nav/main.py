@@ -462,8 +462,7 @@ class Trainer(object):
 
     def _action_classification_epoch(self, optimizer, criterion, num_train_epochs, step_size):
         # construct dataloader and store experiences in dataset
-        datasets = {split: BufferWrapper(self.replay_buffer, split='train')
-                    for split in ['train', 'val', 'test']}
+        datasets = {split: BufferWrapper(self.replay_buffer, split) for split in ['train', 'val', 'test']}
         dataloaders = {split: DataLoader(datasets[split], self.batch_size, shuffle=True, collate_fn=pack_batch)
                        for split in ['train', 'val', 'test']}
         scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)
