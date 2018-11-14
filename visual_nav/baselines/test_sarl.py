@@ -11,7 +11,7 @@ from crowd_nav.policy.sarl import SARL
 
 def test():
     parser = argparse.ArgumentParser('Parse test configuration')
-    parser.add_argument('--num_test_case', type=int, default=50)
+    parser.add_argument('--num_test_case', type=int, default=10)
     parser.add_argument('--human_num', type=int, default=4)
     parser.add_argument('--with_fov', default=False, action='store_true')
     args = parser.parse_args()
@@ -22,6 +22,7 @@ def test():
 
     env = gym.make('VisualSim-v0')
     env = VisualSim()
+    env.max_time = 20
     env.human_num = args.human_num
 
     # configure SARL

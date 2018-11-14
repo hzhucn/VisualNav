@@ -244,7 +244,6 @@ class VisualSim(Env):
         self.robot_states.append(self.client.simGetVehiclePose())
 
     def compute_coordinate_observation(self, with_fov=False):
-        # Todo: only consider humans in FOV
         px = self.robot_states[-1].position.x_val
         py = self.robot_states[-1].position.y_val
         if len(self.robot_states) == 1:
@@ -270,16 +269,15 @@ class VisualSim(Env):
             px = self.human_states[i][-1].position.x_val
             py = self.human_states[i][-1].position.y_val
 
-            if with_fov:
-                angle = np.arctan2(py - robot_state.py, px - robot_state.px)
-                if abs(angle - robot_state.theta) > self.fov / 2:
-                    continue
-
-            human_state = ObservableState(px, py, vx, vy, self.human_radius)
-            human_states.append(human_state)
+            angle = np.arctan2(py - robot_state.py, px - robot_state.px)
+            if with_fov and abs(angle - robot_state.theta) > self.fov / 2:
+                pass
+            else:
+                human_state = ObservableState(px, py, vx, vy, self.human_radius)
+                human_states.append(human_state)
 
         if not human_states:
-            human_states.append(ObservableState(-6, 0, 0, 0, self.human_radius))
+            human_states.append(ObservableState(3, -2, 0, 0, 0.1))
 
         joint_state = JointState(robot_state, human_states)
 

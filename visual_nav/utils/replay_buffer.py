@@ -252,6 +252,14 @@ class ReplayBuffer(Dataset):
 
     def save(self, output_dir):
         """ Save experience """
+        # reduce the disk space
+        self.frames = self.frames[:self.num_in_buffer]
+        self.goals = self.goals[:self.num_in_buffer]
+        self.action = self.action[:self.num_in_buffer]
+        self.reward = self.reward[:self.num_in_buffer]
+        self.done = self.done[:self.num_in_buffer]
+        self.value = self.value[:self.num_in_buffer]
+
         if os.path.exists(output_dir):
             key = input('Replay buffer dir exists. Overwrite(y/n)?')
             if key == 'y':

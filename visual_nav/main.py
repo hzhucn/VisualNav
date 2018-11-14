@@ -85,9 +85,10 @@ class Trainer(object):
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
         """
+        il_max_time = 20
         num_train_batch = num_episodes * 50
         optimizer = optim.Adam(self.Q.parameters(), lr=0.001)
-        self.replay_buffer = ReplayBuffer(int(num_episodes * self.env.max_time / self.env.time_step),
+        self.replay_buffer = ReplayBuffer(int(num_episodes * il_max_time / self.env.time_step),
                                           self.frame_history_len, self.image_size)
 
         logging.info('Start imitation learning')
@@ -99,6 +100,7 @@ class Trainer(object):
             self.replay_buffer.load(replay_buffer_file)
         else:
             demonstrator = self.initialize_demonstrator()
+            self.env.unwrapped.max_time = il_max_time
             episode = 0
             while True:
                 observations = []
@@ -106,21 +108,21 @@ class Trainer(object):
                 done = False
                 info = ''
                 obs = self.env.reset()
-                joint_state = self.env.unwrapped.compute_coordinate_observation()
+                joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
                 while not done:
                     observations.append(obs)
-                    action_xy = demonstrator.predict(joint_state)
-                    action_rot, index = self._approximate_action(action_xy)
-                    obs, reward, done, info = self.env.step(action_rot)
-                    effects.append((torch.IntTensor([[index]]), reward, done))
+                    demonstration = demonstrator.predict(joint_state)
+                    target_action, action_class = self._approximate_action(demonstration)
+                    obs, reward, done, info = self.env.step(target_action)
+                    effects.append((torch.IntTensor([[action_class]]), reward, done))
 
                     if done:
                         logging.info(self.env.get_episode_summary())
                         obs = self.env.reset()
 
-                    joint_state = self.env.unwrapped.compute_coordinate_observation()
+                    joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
 
-                if info in ['Success', 'Collision']:
+                if info == 'Success':
                     episode += 1
                     for obs, effect in zip(observations, effects):
                         last_idx = self.replay_buffer.store_observation(obs)
@@ -162,6 +164,8 @@ class Trainer(object):
                 min_diff = diff
                 target_action = action_rot
                 index = i
+
+        assert np.isclose(min_diff, 0)
 
         return target_action, index
 
@@ -637,7 +641,7 @@ def main():
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--with_il', default=True, action='store_true')
     parser.add_argument('--il_training', type=str, default='classification')
-    parser.add_argument('--num_episodes', type=int, default=3000)
+    parser.add_argument('--num_episodes', type=int, default=4000)
     parser.add_argument('--num_epochs', type=int, default=150)
     parser.add_argument('--step_size', type=int, default=150)
     parser.add_argument('--frame_history_len', type=int, default=1)
