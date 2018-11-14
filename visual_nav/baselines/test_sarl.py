@@ -5,13 +5,14 @@ import argparse
 import pprint
 import torch
 import gym
+import numpy as np
 from visual_sim.envs.visual_sim import VisualSim
 from crowd_nav.policy.sarl import SARL
 
 
 def test():
     parser = argparse.ArgumentParser('Parse test configuration')
-    parser.add_argument('--num_test_case', type=int, default=10)
+    parser.add_argument('--num_test_case', type=int, default=200)
     parser.add_argument('--human_num', type=int, default=4)
     parser.add_argument('--with_fov', default=False, action='store_true')
     args = parser.parse_args()
@@ -22,7 +23,7 @@ def test():
 
     env = gym.make('VisualSim-v0')
     env = VisualSim()
-    env.max_time = 20
+    env.max_time = 50
     env.human_num = args.human_num
 
     # configure SARL
@@ -43,6 +44,7 @@ def test():
     collision = 0
     overtime = 0
     time = []
+    rewards = []
     num_test_case = args.num_test_case
     for i in range(num_test_case):
         ob = env.reset()
@@ -60,11 +62,13 @@ def test():
             elif info == 'Overtime':
                 overtime += 1
 
+            if done:
+                rewards.append(reward)
+
         logging.info('Episode ends with signal: {} in {}s'.format(info, env.time))
 
-    avg_time = sum(time) / len(time) if time else 0
-    logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, average time: {:.2f}s'.format(
-        success/num_test_case, collision/num_test_case, overtime/num_test_case, avg_time))
+    logging.info('Success: {:.2f}, collision: {:.2f}, overtime: {:.2f}, avg time: {:.2f}s, avg reward: {:.4f}'.format(
+        success/num_test_case, collision/num_test_case, overtime/num_test_case, np.mean(time), np.mean(rewards)))
 
 
 if __name__ == '__main__':

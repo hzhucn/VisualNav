@@ -32,13 +32,20 @@ def heatmap(image, heat_map, alpha=0.6, cmap='Reds', ax=None):
     # plt.show()
 
 
-def top_down_view(state, ax):
+def top_down_view(state, ax, in_view_humans):
     ax.clear()
     robot_radius = 0.3
     human_radius = 0.5
     robot = state.self_state
     humans = state.human_states
-    ax.invert_yaxis()
+
+    # invert the y axis
+    robot.py = - robot.py
+    robot.vy = - robot.vy
+    robot.theta = -robot.theta
+    for human in humans:
+        human.py = - human.py
+        human.vy = - human.vy
 
     cmap = plt.cm.get_cmap('hsv', 10)
     robot_color = 'yellow'
@@ -62,23 +69,21 @@ def top_down_view(state, ax):
 
     # add humans and their numbers
     human_circles = [plt.Circle((humans[i].px, humans[i].py), human_radius, fill=False)
-              for i in range(len(humans))]
-    # human_numbers = [plt.text(humans[i].center[0] - x_offset, humans[i].center[1] - y_offset, str(i),
-    #                           color='black') for i in range(len(self.humans))]
-
-    for i, human_circle in enumerate(human_circles):
+                     for i in range(len(humans))]
+    human_numbers = [plt.text(human_circles[i].center[0]-0.1, human_circles[i].center[1]-0.1, str(i), fontsize=8,
+                              color='black') for i in range(len(humans))]
+    for human_circle, human_number in zip(human_circles, human_numbers):
         ax.add_artist(human_circle)
-        # ax.add_artist(human_numbers[i])
+        ax.add_artist(human_number)
 
     # add time annotation
     # time = plt.text(0.4, 0.9, 'Time: {}'.format(0), transform=ax.transAxes)
     # ax.add_artist(time)
 
     # visualize attention scores
-    # if hasattr(self.robot.policy, 'get_attention_weights'):
-    #     attention_scores = [
-    #         plt.text(-5.5, 5 - 0.5 * i, 'Human {}: {:.2f}'.format(i + 1, self.attention_weights[0][i]),
-    #                  fontsize=16) for i in range(len(self.humans))]
+    for i, (human_index, attention) in enumerate(in_view_humans):
+        attention_score_text = plt.text(2, 6 - 0.5 * i, 'Human {}: {:.2f}'.format(human_index, attention))
+        ax.add_artist(attention_score_text)
 
     # compute orientation in each step and use arrow to show the direction
     robot_orientation = ((robot.px, robot.py), (robot.px + robot_radius * np.cos(robot.theta),

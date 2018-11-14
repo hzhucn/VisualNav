@@ -43,7 +43,7 @@ for model in models:
     if test_log:
         test_logs.append((model, float(test_log[0][0]), float(test_log[0][1]), float(test_log[0][2])))
     else:
-        print('Cannot find test patter in {}'.format(model_dir))
+        print('Cannot find test data in {}'.format(model_dir))
 
 test_logs = sorted(test_logs, key=itemgetter(3), reverse=True)
 for test_log in test_logs:

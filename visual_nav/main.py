@@ -80,7 +80,7 @@ class Trainer(object):
         self.action_dict = {action: (i, ActionXY(action.v * np.cos(action.r), action.v * np.sin(action.r)))
                             for i, action in enumerate(self.env.unwrapped.actions)}
 
-    def imitation_learning(self, num_episodes=3000, training='mc', num_epochs=500, step_size=100):
+    def imitation_learning(self, num_episodes=3000, training='mc', num_epochs=500, step_size=100, test=False):
         """
         Imitation learning and reinforcement learning share the same environment, replay buffer and Q function
 
@@ -147,7 +147,8 @@ class Trainer(object):
         torch.save(self.Q.state_dict(), weights_file)
         logging.info('Save imitation learning trained weights to {}'.format(weights_file))
 
-        # self.test()
+        if test:
+            self.test()
 
     def _approximate_action(self, demonstration):
         """ Approximate demonstration action with closest target action"""
@@ -194,7 +195,7 @@ class Trainer(object):
         cumulative_attention_diff = []
         cumulative_random_diff = []
         if visualize_step:
-            _, (ax1, ax2, ax3) = plt.subplots(1, 3)
+            _, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 7))
         for i in range(self.num_test_case):
             obs = self.env.reset()
             done = False
@@ -210,19 +211,25 @@ class Trainer(object):
                     if demonstrator is None:
                         demonstrator = self.initialize_demonstrator()
                     # compute the similarity of two attention models
-                    gt_obs = self.env.unwrapped.compute_coordinate_observation()
-                    _ = demonstrator.predict(gt_obs)
+                    full_obs = self.env.unwrapped.compute_coordinate_observation()
+                    partial_obs, human_index_mapping = self.env.unwrapped.compute_coordinate_observation(True, True)
+                    _ = demonstrator.predict(partial_obs)
                     demonstrator_attention = demonstrator.model.attention_weights
 
                     # choose humans within FOV
-                    robot_state = gt_obs.self_state
-                    human_states = gt_obs.human_states
+                    robot_state = full_obs.self_state
+                    human_states = full_obs.human_states
                     human_directions = []
+                    in_view_humans = []
                     for human_index, human_state in enumerate(human_states):
+                        if human_state.px == 3 and human_state.py == -2:
+                            # skip the dummy human
+                            continue
                         angle = np.arctan2(human_state.py - robot_state.py, human_state.px - robot_state.px)
                         relative_angle = angle - robot_state.theta
-                        if abs(relative_angle) < (self.env.unwrapped.fov + np.pi / 6) / 2:
-                            human_directions.append((relative_angle, demonstrator_attention[human_index]))
+                        if abs(relative_angle) < (self.env.unwrapped.fov + np.pi / 6) / 2 and human_index in human_index_mapping:
+                            human_directions.append((relative_angle, demonstrator_attention[human_index_mapping[human_index]]))
+                            in_view_humans.append((human_index, demonstrator_attention[human_index_mapping[human_index]]))
 
                     # sort humans in the order of importance
                     human_directions = sorted(human_directions, key=itemgetter(1), reverse=True)
@@ -254,8 +261,7 @@ class Trainer(object):
                         ax1.imshow(obs.image[:, :, 0], cmap='gray')
                         attention_weights = self.Q.attention_weights.squeeze().view(7, 7).cpu().numpy()
                         heatmap(obs.image[:, :, 0], attention_weights, ax=ax2)
-                        gt_obs = self.env.unwrapped.compute_coordinate_observation()
-                        top_down_view(gt_obs, ax3)
+                        top_down_view(full_obs, ax3, in_view_humans)
 
                     # action_rot = self.env.unwrapped.actions[action.item()]
                     # logging.info('v: {:.2f}, r: {:.2f}'.format(action_rot[0], -np.rad2deg(action_rot[1])))
@@ -656,6 +662,7 @@ def main():
     parser.add_argument('--reward_shaping', default=False, action='store_true')
     parser.add_argument('--curriculum_learning', default=False, action='store_true')
     parser.add_argument('--episode_update', default=False, action='store_true')
+    parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--test_il', default=False, action='store_true')
     parser.add_argument('--test_rl', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=200)
@@ -725,7 +732,8 @@ def main():
                 num_episodes=args.num_episodes,
                 training=args.il_training,
                 num_epochs=args.num_epochs,
-                step_size=args.step_size
+                step_size=args.step_size,
+                test=args.test
             )
 
         # reinforcement learning

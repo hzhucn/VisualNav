@@ -243,7 +243,7 @@ class VisualSim(Env):
             self.human_states[i].append(pose)
         self.robot_states.append(self.client.simGetVehiclePose())
 
-    def compute_coordinate_observation(self, with_fov=False):
+    def compute_coordinate_observation(self, with_fov=False, index_mapping=False):
         px = self.robot_states[-1].position.x_val
         py = self.robot_states[-1].position.y_val
         if len(self.robot_states) == 1:
@@ -260,6 +260,7 @@ class VisualSim(Env):
         robot_state = FullState(px, py, vx, vy, r, gx, gy, v_pref, theta)
 
         human_states = []
+        human_index_mapping = {}
         for i in range(self.human_num):
             if len(self.human_states[i]) == 1:
                 vx = vy = 0
@@ -275,13 +276,17 @@ class VisualSim(Env):
             else:
                 human_state = ObservableState(px, py, vx, vy, self.human_radius)
                 human_states.append(human_state)
+                human_index_mapping[i] = len(human_states) - 1
 
         if not human_states:
             human_states.append(ObservableState(3, -2, 0, 0, 0.1))
 
         joint_state = JointState(robot_state, human_states)
 
-        return joint_state
+        if index_mapping:
+            return joint_state, human_index_mapping
+        else:
+            return joint_state
 
     def _interpret_action(self, action_index):
         assert isinstance(action_index, int)

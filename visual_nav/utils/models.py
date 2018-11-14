@@ -3,7 +3,8 @@ from visual_nav.utils.model_archive import *
 
 class GDNet(nn.Module):
     def __init__(self, in_channels=4, num_actions=18, with_sa=True, with_ga=True, goal_embedding_as_feature=False,
-                 share_image_embedding=False, mean_pool_feature_map=False, residual_connection=False):
+                 share_image_embedding=False, mean_pool_feature_map=False, residual_connection=False,
+                 attention_as_regressor=False):
         """
         A base network architecture for goal-driven tasks
         """
@@ -14,6 +15,7 @@ class GDNet(nn.Module):
         self.share_image_embedding = share_image_embedding
         self.mean_pool_feature_map = mean_pool_feature_map
         self.residual_connection = residual_connection
+        self.attention_as_regressor = attention_as_regressor
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
@@ -37,9 +39,12 @@ class GDNet(nn.Module):
 
         if with_ga:
             # goal-driven attention
-            if not self.share_image_embedding:
-                self.theta2 = nn.Conv2d(self.C, self.E, 1)
-            self.alpha = nn.Linear(self.D, self.E)
+            if attention_as_regressor:
+                self.attention = nn.Sequential(nn.Linear(self.C + self.D, 128), nn.ReLU(), nn.Linear(128, 1))
+            else:
+                if not self.share_image_embedding:
+                    self.theta2 = nn.Conv2d(self.C, self.E, 1)
+                self.alpha = nn.Linear(self.D, self.E)
             image_feature_dim = self.C * 1 * 1
         else:
             if mean_pool_feature_map:
@@ -87,21 +92,34 @@ class GDNet(nn.Module):
             last_feature_maps = feature_maps
 
         if self.with_ga:
-            # -> b, 1, 32
-            alpha_g = self.alpha(goals.view(-1, self.D)).unsqueeze(2)
-            # -> b, 49, 1, batched matrix multiplication
-            if self.share_image_embedding:
-                attention_scores = torch.matmul(theta_x, alpha_g)
+            if self.attention_as_regressor:
+                # (b, 64, 7, 7) -> (b, 49, 64)
+                image_blocks = feature_maps.view(feature_maps.size(0), feature_maps.size(1), -1).permute(0, 2, 1)
+                # (b * 49, 64)
+                image_blocks = image_blocks.contiguous().view(-1, image_blocks.size(2))
+                goals_expanded = goals.view(B, -1).unsqueeze(1).expand((B, 49, self.D))
+                queries = goals_expanded.contiguous().view(-1, self.D)
+                attention_input = torch.cat([image_blocks, queries], dim=1)
+                attention_scores = self.attention(attention_input).view(B, 49, 1)
+                attention_weights = F.softmax(attention_scores, dim=1)
+                self.attention_weights = attention_weights.data
             else:
-                theta2_x = self.theta2(feature_maps).view(-1, 32, 49).permute(0, 2, 1)
-                attention_scores = torch.matmul(theta2_x, alpha_g)
-            attention_weights = F.softmax(attention_scores, dim=1)
-            self.attention_weights = attention_weights.data
+                # -> b, 1, 32
+                alpha_g = self.alpha(goals.view(-1, self.D)).unsqueeze(2)
+                # -> b, 49, 1, batched matrix multiplication
+                if self.share_image_embedding:
+                    attention_scores = torch.matmul(theta_x, alpha_g)
+                else:
+                    theta2_x = self.theta2(feature_maps).view(-1, 32, 49).permute(0, 2, 1)
+                    attention_scores = torch.matmul(theta2_x, alpha_g)
+                attention_weights = F.softmax(attention_scores, dim=1)
+                self.attention_weights = attention_weights.data
 
             # compute aggregated feature
             # -> b, 49, 64
             last_feature_maps = last_feature_maps.view(B, 64, 49).permute(0, 2, 1)
             image_features = torch.sum(torch.mul(last_feature_maps, attention_weights), dim=1)
+
             if self.goal_embedding_as_feature:
                 goal_features = alpha_g.squeeze(2)
             else:
@@ -166,6 +184,18 @@ class GDA(GDNet):
                          )
 
 
+class GDARegressor(GDNet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs,
+                         with_sa=False,
+                         with_ga=True,
+                         goal_embedding_as_feature=False,
+                         share_image_embedding=False,
+                         mean_pool_feature_map=False,
+                         attention_as_regressor=True
+                         )
+
+
 class GDDANoSIE(GDNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs,
@@ -214,5 +244,5 @@ class GDDAResidual(GDNet):
 model_factory = {'dqn': DQN, 'daqn': DAQN, 'da1qn': DA1QN, 'da2qn': DA2QN,
                  'gdda': GDDA, 'gda': GDA, 'plain_cnn': PlainCNN,
                  'plain_cnn_mean': PlainCNNMean, 'gda_no_gef': GDANoGEF, 'gdda_no_sie': GDDANoSIE,
-                 'gdda_residual': GDDAResidual, 'gdda_no_gef': GDDANoGEF}
+                 'gdda_residual': GDDAResidual, 'gdda_no_gef': GDDANoGEF, 'gda_regressor': GDARegressor}
 
