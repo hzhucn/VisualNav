@@ -64,6 +64,7 @@ class GDNet(nn.Module):
 
         # for visualization
         self.attention_weights = None
+        self.max_response_index = None
 
     def forward(self, frames, goals):
         B = goals.size(0)
@@ -125,6 +126,7 @@ class GDNet(nn.Module):
             else:
                 goal_features = goals.view(goals.size(0), -1)
         else:
+            # self.max_response_index =
             if self.mean_pool_feature_map:
                 # B, C, H, W -> B, C
                 image_features = torch.mean(feature_maps.view(B, self.C, -1), 2)
@@ -241,8 +243,21 @@ class GDDAResidual(GDNet):
                          )
 
 
+class GDDAResidualNoSIENoGEF(GDNet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs,
+                         with_sa=True,
+                         with_ga=True,
+                         goal_embedding_as_feature=False,
+                         share_image_embedding=False,
+                         mean_pool_feature_map=False,
+                         residual_connection=True
+                         )
+
+
 model_factory = {'dqn': DQN, 'daqn': DAQN, 'da1qn': DA1QN, 'da2qn': DA2QN,
                  'gdda': GDDA, 'gda': GDA, 'plain_cnn': PlainCNN,
                  'plain_cnn_mean': PlainCNNMean, 'gda_no_gef': GDANoGEF, 'gdda_no_sie': GDDANoSIE,
-                 'gdda_residual': GDDAResidual, 'gdda_no_gef': GDDANoGEF, 'gda_regressor': GDARegressor}
+                 'gdda_residual': GDDAResidual, 'gdda_no_gef': GDDANoGEF, 'gda_regressor': GDARegressor,
+                 'gdda_residual_no_sie_no_gef': GDDAResidualNoSIENoGEF}
 

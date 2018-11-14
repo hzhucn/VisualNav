@@ -12,7 +12,7 @@ from crowd_nav.policy.sarl import SARL
 
 def test():
     parser = argparse.ArgumentParser('Parse test configuration')
-    parser.add_argument('--num_test_case', type=int, default=200)
+    parser.add_argument('--num_test_case', type=int, default=50)
     parser.add_argument('--human_num', type=int, default=4)
     parser.add_argument('--with_fov', default=False, action='store_true')
     args = parser.parse_args()

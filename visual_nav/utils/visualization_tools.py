@@ -7,7 +7,6 @@ import numpy as np
 
 
 def heatmap(image, heat_map, alpha=0.6, cmap='Reds', ax=None):
-
     height = image.shape[0]
     width = image.shape[1]
 

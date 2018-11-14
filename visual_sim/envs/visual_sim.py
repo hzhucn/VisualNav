@@ -60,7 +60,7 @@ class VisualSim(Env):
         self.early_reward_ratio = 0.5
 
         # human
-        self.human_num = 4
+        self.human_num = 8
         self.human_states = defaultdict(list)
         # 2.7 * 0.73
         self.human_radius = 1
@@ -71,15 +71,15 @@ class VisualSim(Env):
         self.robot_states = list()
 
         # action space
-        self.speed_samples = 3
-        self.rotation_samples = 5
+        self.speed_samples = 2
+        self.rotation_samples = 7
         self.actions = self._build_action_space()
         self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
 
         # observation_space
         self.image_type = image_type
         self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
-        self.fov = np.pi / 2
+        self.fov = np.pi / 3 * 2
 
         self.client = None
 
@@ -317,7 +317,7 @@ class VisualSim(Env):
     def _build_action_space(self):
         speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
                   range(self.speed_samples)]
-        rotations = np.linspace(-np.pi / 4, np.pi / 4, self.rotation_samples)
+        rotations = np.linspace(-np.pi / 3, np.pi / 3, self.rotation_samples)
 
         actions = [ActionRot(0, 0)]
         for rotation, speed in itertools.product(rotations, speeds):

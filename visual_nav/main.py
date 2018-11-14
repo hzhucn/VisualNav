@@ -93,7 +93,7 @@ class Trainer(object):
 
         logging.info('Start imitation learning')
         weights_file = os.path.join(self.output_dir, 'il_model.pth')
-        replay_buffer_file = 'data/replay_buffer_{}'.format(num_episodes)
+        replay_buffer_file = 'data/replay_buffer_{}_{}'.format(num_episodes, int(self.env.unwrapped.human_num))
         if self.load_weights(weights_file):
             return
         if os.path.exists(replay_buffer_file):
@@ -227,7 +227,7 @@ class Trainer(object):
                             continue
                         angle = np.arctan2(human_state.py - robot_state.py, human_state.px - robot_state.px)
                         relative_angle = angle - robot_state.theta
-                        if abs(relative_angle) < (self.env.unwrapped.fov + np.pi / 6) / 2 and human_index in human_index_mapping:
+                        if abs(relative_angle) < self.env.unwrapped.fov / 2 and human_index in human_index_mapping:
                             human_directions.append((relative_angle, demonstrator_attention[human_index_mapping[human_index]]))
                             in_view_humans.append((human_index, demonstrator_attention[human_index_mapping[human_index]]))
 
@@ -268,6 +268,9 @@ class Trainer(object):
 
                 obs, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
+            else:
+                # compute diff of the direction of max response in cnn and the attention direction of demonstrator
+                pass
 
             logging.info(self.env.get_episode_summary() + ' with attention diff: {:.2f} and random diff: {:.2f}'.
                          format(np.mean(episode_attention_diff), np.mean(episode_random_diff)))
