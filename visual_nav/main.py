@@ -53,7 +53,8 @@ class Trainer(object):
                  gamma=0.9,
                  frame_history_len=4,
                  target_update_freq=10000,
-                 num_test_case=100
+                 num_test_case=100,
+                 use_best_wts=False
                  ):
         self.env = env
         self.device = device
@@ -63,6 +64,7 @@ class Trainer(object):
         self.target_update_freq = target_update_freq
         self.output_dir = output_dir
         self.num_test_case = num_test_case
+        self.use_best_wts = use_best_wts
 
         img_h, img_w, img_c = env.observation_space.shape
         self.input_arg = frame_history_len * img_c
@@ -196,7 +198,7 @@ class Trainer(object):
         cumulative_attention_diff = []
         cumulative_random_diff = []
         if visualize_step:
-            _, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 7))
+            _, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 7))
         for i in range(self.num_test_case):
             obs = self.env.reset()
             done = False
@@ -250,11 +252,11 @@ class Trainer(object):
                     plt.axis('scaled')
                     plt.ion()
                     plt.show()
-                    ax1.imshow(obs.image[:, :, 0], cmap='gray')
+                    # ax1.imshow(obs.image[:, :, 0], cmap='gray')
                     if self.Q.attention_weights is not None:
                         attention_weights = self.Q.attention_weights.squeeze().view(7, 7).cpu().numpy()
-                        heatmap(obs.image[:, :, 0], attention_weights, ax=ax2)
-                        top_down_view(full_obs, ax3, in_view_humans)
+                        heatmap(obs.image[:, :, 0], attention_weights, ax=ax1)
+                        top_down_view(full_obs, ax2, in_view_humans)
 
                 # compute the distance between two attention directions
                 fov = self.env.unwrapped.fov
@@ -279,7 +281,7 @@ class Trainer(object):
         logging.info('Average attention direction difference: {:.4f}'.format(np.mean(cumulative_attention_diff)))
         logging.info('Random attention direction difference: {:.4f}'.format(np.mean(cumulative_random_diff)))
 
-    def test_all_models(self):
+    def test_all_models(self, visualize_step=False):
         demonstrator = self.initialize_demonstrator()
         replay_buffer = ReplayBuffer(int(self.num_test_case * self.env.max_time / self.env.time_step),
                                      self.frame_history_len, self.image_size)
@@ -296,6 +298,7 @@ class Trainer(object):
                 models[dir_name] = model
                 logging.info('{} weights loaded'.format(dir_name))
 
+        _, axes = plt.subplots(2, 2, figsize=(12, 12))
         cumulative_attention_diff = defaultdict(list)
         cumulative_random_diff = []
         for i in range(self.num_test_case):
@@ -360,6 +363,31 @@ class Trainer(object):
                     random_direction = np.random.uniform(-fov / 2, fov / 2)
                     random_diff = abs(human_directions[0][0] - random_direction)
                     episode_random_diff.append(random_diff)
+
+                if visualize_step:
+                    # plt.axis('scaled')
+                    # plt.ion()
+                    # plt.show()
+                    axes[0][0].axis('off')
+                    # axes[0][0].imshow(obs.image[:, :, 0], cmap='gray')
+                    top_down_view(full_obs, axes[0][0], in_view_humans)
+                    index = 1
+                    for name, model in models.items():
+                        if name == 'plain_cnn_mean':
+                            continue
+
+                        ax = axes[int(index / 2)][index % 2]
+                        ax.axis('off')
+                        if model.attention_weights is not None:
+                            attention_weights = model.attention_weights.squeeze().view(7, 7).cpu().numpy()
+                            heatmap(obs.image[:, :, 0], attention_weights, ax=ax)
+                        else:
+                            mean_block_response = model.mean_block_response.squeeze().view(7, 7).cpu().numpy()
+                            heatmap(obs.image[:, :, 0], mean_block_response, ax=ax)
+                        ax.set_title(name)
+
+                        index += 1
+                    plt.show()
 
                 obs, reward, done, info = self.env.step(target_action)
                 # replay_buffer.store_effect(last_idx, action, reward, done)
@@ -628,7 +656,7 @@ class Trainer(object):
             if self.num_param_updates % self.log_every_n_steps == 0:
                 logging.info('Batch loss: {:.4f} after {} batches'.format(loss.item(), self.num_param_updates))
 
-    def _action_classification_epoch(self, optimizer, criterion, num_train_epochs, step_size, use_best_wts=False):
+    def _action_classification_epoch(self, optimizer, criterion, num_train_epochs, step_size):
         # construct dataloader and store experiences in dataset
         datasets = {split: BufferWrapper(self.replay_buffer, split) for split in ['train', 'val', 'test']}
         dataloaders = {split: DataLoader(datasets[split], self.batch_size, shuffle=True, collate_fn=pack_batch)
@@ -687,7 +715,7 @@ class Trainer(object):
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
                     best_acc = epoch_acc
-                    if use_best_wts:
+                    if self.use_best_wts:
                         best_model_wts = copy.deepcopy(model.state_dict())
 
         time_elapsed = time.time() - since
@@ -696,7 +724,7 @@ class Trainer(object):
         logging.info('Best val Acc: {:4f}'.format(best_acc))
 
         # load best model weights
-        if use_best_wts:
+        if self.use_best_wts:
             model.load_state_dict(best_model_wts)
 
         # test model
@@ -748,6 +776,7 @@ def main():
     parser.add_argument('--il_training', type=str, default='classification')
     parser.add_argument('--num_episodes', type=int, default=4000)
     parser.add_argument('--num_epochs', type=int, default=150)
+    parser.add_argument('--use_best_wts', default=True, action='store_true')
     parser.add_argument('--step_size', type=int, default=150)
     parser.add_argument('--frame_history_len', type=int, default=1)
     parser.add_argument('--with_rl', default=False, action='store_true')
@@ -816,7 +845,8 @@ def main():
         gamma=args.gamma,
         frame_history_len=args.frame_history_len,
         target_update_freq=10000,
-        num_test_case=args.num_test_case
+        num_test_case=args.num_test_case,
+        use_best_wts=args.use_best_wts
     )
 
     if args.test_il:
@@ -826,7 +856,7 @@ def main():
         trainer.load_weights(os.path.join(args.output_dir, 'rl_model.pth'))
         trainer.test(args.visualize_step)
     elif args.test_all_models:
-        trainer.test_all_models()
+        trainer.test_all_models(visualize_step=args.visualize_step)
     else:
         # imitation learning
         if args.with_il:

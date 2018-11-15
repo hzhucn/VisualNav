@@ -65,6 +65,7 @@ class GDNet(nn.Module):
         # for visualization
         self.attention_weights = None
         self.max_response_index = None
+        self.mean_block_response = None
 
     def forward(self, frames, goals):
         B = goals.size(0)
@@ -126,8 +127,8 @@ class GDNet(nn.Module):
             else:
                 goal_features = goals.view(goals.size(0), -1)
         else:
-            mean_block_response = torch.mean(feature_maps.view(B, self.C, -1), 1)
-            _, self.max_response_index = torch.max(mean_block_response, 1)
+            self.mean_block_response = F.softmax(torch.mean(feature_maps.view(B, self.C, -1), 1), 1).data
+            _, self.max_response_index = torch.max(self.mean_block_response, 1)
             if self.mean_pool_feature_map:
                 # B, C, H, W -> B, C
                 image_features = torch.mean(feature_maps.view(B, self.C, -1), 2)
