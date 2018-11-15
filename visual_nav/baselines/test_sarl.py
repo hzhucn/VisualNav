@@ -12,8 +12,8 @@ from crowd_nav.policy.sarl import SARL
 
 def test():
     parser = argparse.ArgumentParser('Parse test configuration')
-    parser.add_argument('--num_test_case', type=int, default=50)
-    parser.add_argument('--human_num', type=int, default=4)
+    parser.add_argument('--num_test_case', type=int, default=500)
+    parser.add_argument('--human_num', type=int, default=8)
     parser.add_argument('--with_fov', default=False, action='store_true')
     args = parser.parse_args()
 
@@ -23,11 +23,10 @@ def test():
 
     env = gym.make('VisualSim-v0')
     env = VisualSim()
-    env.max_time = 50
     env.human_num = args.human_num
 
     # configure SARL
-    model_dir = 'crowdnav_data/orca_square_20p_nearest_10p_invisible/sarl_without_global_state'
+    model_dir = 'data/sarl'
     assert os.path.exists(model_dir)
     policy = SARL()
     policy.epsilon = 0

@@ -10,6 +10,7 @@ import shutil
 import pprint
 import configparser
 from operator import itemgetter
+from collections import defaultdict
 
 import git
 import gym
@@ -64,13 +65,13 @@ class Trainer(object):
         self.num_test_case = num_test_case
 
         img_h, img_w, img_c = env.observation_space.shape
-        input_arg = frame_history_len * img_c
+        self.input_arg = frame_history_len * img_c
         self.num_actions = env.action_space.n
         self.image_size = (img_h, img_w, img_c)
         self.time_step = env.unwrapped.time_step
 
-        self.Q = q_func(input_arg, self.num_actions).to(device)
-        self.target_Q = q_func(input_arg, self.num_actions).to(device)
+        self.Q = q_func(self.input_arg, self.num_actions).to(device)
+        self.target_Q = q_func(self.input_arg, self.num_actions).to(device)
         # self.replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len, self.image_size)
         self.replay_buffer = None
 
@@ -117,7 +118,7 @@ class Trainer(object):
                     effects.append((torch.IntTensor([[action_class]]), reward, done))
 
                     if done:
-                        logging.info(self.env.get_episode_summary())
+                        logging.info(self.env.get_episode_summary() + ' in episode {}'.format(episode))
                         obs = self.env.reset()
 
                     joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
@@ -207,78 +208,170 @@ class Trainer(object):
                 recent_observations = replay_buffer.encode_recent_observation()
                 action = self.act(recent_observations)
 
+                if demonstrator is None:
+                    demonstrator = self.initialize_demonstrator()
+                # compute the similarity of two attention models
+                full_obs = self.env.unwrapped.compute_coordinate_observation()
+                partial_obs, human_index_mapping = self.env.unwrapped.compute_coordinate_observation(True, True)
+                _ = demonstrator.predict(partial_obs)
+                demonstrator_attention = demonstrator.model.attention_weights
+
+                # choose humans within FOV
+                robot_state = full_obs.self_state
+                human_states = full_obs.human_states
+                human_directions = []
+                in_view_humans = []
+                for human_index, human_state in enumerate(human_states):
+                    if human_state.px == 3 and human_state.py == -2:
+                        # skip the dummy human
+                        continue
+                    angle = np.arctan2(human_state.py - robot_state.py, human_state.px - robot_state.px)
+                    relative_angle = angle - robot_state.theta
+                    if abs(relative_angle) < self.env.unwrapped.fov / 2 and human_index in human_index_mapping:
+                        human_directions.append(
+                            (relative_angle, demonstrator_attention[human_index_mapping[human_index]]))
+                        in_view_humans.append((human_index, demonstrator_attention[human_index_mapping[human_index]]))
+
+                # sort humans in the order of importance
+                human_directions = sorted(human_directions, key=itemgetter(1), reverse=True)
+
                 if self.Q.attention_weights is not None:
-                    if demonstrator is None:
-                        demonstrator = self.initialize_demonstrator()
-                    # compute the similarity of two attention models
-                    full_obs = self.env.unwrapped.compute_coordinate_observation()
-                    partial_obs, human_index_mapping = self.env.unwrapped.compute_coordinate_observation(True, True)
-                    _ = demonstrator.predict(partial_obs)
-                    demonstrator_attention = demonstrator.model.attention_weights
-
-                    # choose humans within FOV
-                    robot_state = full_obs.self_state
-                    human_states = full_obs.human_states
-                    human_directions = []
-                    in_view_humans = []
-                    for human_index, human_state in enumerate(human_states):
-                        if human_state.px == 3 and human_state.py == -2:
-                            # skip the dummy human
-                            continue
-                        angle = np.arctan2(human_state.py - robot_state.py, human_state.px - robot_state.px)
-                        relative_angle = angle - robot_state.theta
-                        if abs(relative_angle) < self.env.unwrapped.fov / 2 and human_index in human_index_mapping:
-                            human_directions.append((relative_angle, demonstrator_attention[human_index_mapping[human_index]]))
-                            in_view_humans.append((human_index, demonstrator_attention[human_index_mapping[human_index]]))
-
-                    # sort humans in the order of importance
-                    human_directions = sorted(human_directions, key=itemgetter(1), reverse=True)
-
                     # compute the direction the agent is attending to
                     agent_attention = self.Q.attention_weights.squeeze().cpu().numpy()
                     max_cell_index = np.argmax(agent_attention)
-                    # include body parts
-                    fov = self.env.unwrapped.fov
                     horizontal_cell_index = max_cell_index % self.Q.W
-                    cell_fov = fov / self.Q.W
-                    agent_attention_directions = -fov / 2 + (horizontal_cell_index - 0.5) * cell_fov
+                    # action_rot = self.env.unwrapped.actions[action.item()]
+                    # logging.info('v: {:.2f}, r: {:.2f}'.format(action_rot[0], -np.rad2deg(action_rot[1])))
+                else:
+                    # compute diff of the direction of max response in cnn and the attention direction of demonstrator
+                    horizontal_cell_index = self.Q.max_response_index.cpu().numpy()[0] % self.Q.W
 
-                    # compute the distance between two attention directions
-                    random_direction = np.random.uniform(-fov / 2, fov / 2)
-                    if human_directions:
-                        attention_diff = abs(human_directions[0][0] - agent_attention_directions)
-                        random_diff = abs(human_directions[0][0] - random_direction)
-                    else:
-                        attention_diff = 0
-                        random_diff = 0
-                    episode_attention_diff.append(attention_diff)
-                    episode_random_diff.append(random_diff)
-
-                    if visualize_step:
-                        plt.axis('scaled')
-                        plt.ion()
-                        plt.show()
-                        ax1.imshow(obs.image[:, :, 0], cmap='gray')
+                if visualize_step:
+                    plt.axis('scaled')
+                    plt.ion()
+                    plt.show()
+                    ax1.imshow(obs.image[:, :, 0], cmap='gray')
+                    if self.Q.attention_weights is not None:
                         attention_weights = self.Q.attention_weights.squeeze().view(7, 7).cpu().numpy()
                         heatmap(obs.image[:, :, 0], attention_weights, ax=ax2)
                         top_down_view(full_obs, ax3, in_view_humans)
 
-                    # action_rot = self.env.unwrapped.actions[action.item()]
-                    # logging.info('v: {:.2f}, r: {:.2f}'.format(action_rot[0], -np.rad2deg(action_rot[1])))
+                # compute the distance between two attention directions
+                fov = self.env.unwrapped.fov
+                cell_fov = fov / self.Q.W
+                agent_attention_direction = -fov / 2 + (horizontal_cell_index - 0.5) * cell_fov
+                random_direction = np.random.uniform(-fov / 2, fov / 2)
+                if human_directions:
+                    attention_diff = abs(human_directions[0][0] - agent_attention_direction)
+                    random_diff = abs(human_directions[0][0] - random_direction)
+                    episode_attention_diff.append(attention_diff)
+                    episode_random_diff.append(random_diff)
 
                 obs, reward, done, info = self.env.step(action.item())
                 replay_buffer.store_effect(last_idx, action, reward, done)
-            else:
-                # compute diff of the direction of max response in cnn and the attention direction of demonstrator
-                pass
 
-            logging.info(self.env.get_episode_summary() + ' with attention diff: {:.2f} and random diff: {:.2f}'.
-                         format(np.mean(episode_attention_diff), np.mean(episode_random_diff)))
+            logging.info(self.env.get_episode_summary() + ' with attention diff: {:.2f} and random diff: {:.2f}, in episode {}'.
+                         format(np.mean(episode_attention_diff), np.mean(episode_random_diff), i))
             cumulative_attention_diff.append(np.mean(episode_attention_diff))
             cumulative_random_diff.append(np.mean(episode_random_diff))
 
         logging.info(self.env.get_episodes_summary(num_last_episodes=self.num_test_case))
         logging.info('Average attention direction difference: {:.4f}'.format(np.mean(cumulative_attention_diff)))
+        logging.info('Random attention direction difference: {:.4f}'.format(np.mean(cumulative_random_diff)))
+
+    def test_all_models(self):
+        demonstrator = self.initialize_demonstrator()
+        replay_buffer = ReplayBuffer(int(self.num_test_case * self.env.max_time / self.env.time_step),
+                                     self.frame_history_len, self.image_size)
+
+        # load il models
+        models = dict()
+        dir_names = os.listdir(self.output_dir)
+        for dir_name in dir_names:
+            if dir_name not in model_factory:
+                logging.warning('Can not recognize dir name: {}'.format(dir_name))
+            else:
+                model = model_factory[dir_name](self.input_arg, self.num_actions).to(self.device)
+                model.load_state_dict(torch.load(os.path.join(self.output_dir, dir_name, 'il_model.pth')))
+                models[dir_name] = model
+                logging.info('{} weights loaded'.format(dir_name))
+
+        cumulative_attention_diff = defaultdict(list)
+        cumulative_random_diff = []
+        for i in range(self.num_test_case):
+            obs = self.env.reset()
+            done = False
+
+            episode_attention_diff = defaultdict(list)
+            episode_random_diff = []
+            while not done:
+                # compute the similarity of two attention models
+                full_obs = self.env.unwrapped.compute_coordinate_observation()
+                partial_obs, human_index_mapping = self.env.unwrapped.compute_coordinate_observation(True, True)
+                demonstrator_action = demonstrator.predict(partial_obs)
+                target_action, _ = self._approximate_action(demonstrator_action)
+                demonstrator_attention = demonstrator.model.attention_weights
+
+                # choose humans within FOV
+                robot_state = full_obs.self_state
+                human_states = full_obs.human_states
+                human_directions = []
+                in_view_humans = []
+                for human_index, human_state in enumerate(human_states):
+                    if human_state.px == 3 and human_state.py == -2:
+                        # skip the dummy human
+                        continue
+                    angle = np.arctan2(human_state.py - robot_state.py, human_state.px - robot_state.px)
+                    relative_angle = angle - robot_state.theta
+                    if abs(relative_angle) < self.env.unwrapped.fov / 2 and human_index in human_index_mapping:
+                        human_directions.append(
+                            (relative_angle, demonstrator_attention[human_index_mapping[human_index]]))
+                        in_view_humans.append(
+                            (human_index, demonstrator_attention[human_index_mapping[human_index]]))
+
+                # sort humans in the order of importance
+                human_directions = sorted(human_directions, key=itemgetter(1), reverse=True)
+
+                for name, model in models.items():
+                    # compute observation for models
+                    last_idx = replay_buffer.store_observation(obs)
+                    recent_observations = replay_buffer.encode_recent_observation()
+                    action = self.act(recent_observations, model)
+
+                    if model.attention_weights is not None:
+                        # compute the direction the agent is attending to
+                        agent_attention = model.attention_weights.squeeze().cpu().numpy()
+                        max_cell_index = np.argmax(agent_attention)
+                        horizontal_cell_index = max_cell_index % model.W
+                    else:
+                        horizontal_cell_index = model.max_response_index.cpu().numpy()[0] % model.W
+
+                    # compute the distance between two attention directions
+                    fov = self.env.unwrapped.fov
+                    cell_fov = fov / model.W
+                    agent_attention_direction = -fov / 2 + (horizontal_cell_index - 0.5) * cell_fov
+
+                    if human_directions:
+                        attention_diff = abs(human_directions[0][0] - agent_attention_direction)
+                        episode_attention_diff[name].append(attention_diff)
+
+                # compute random attention direction
+                if human_directions:
+                    random_direction = np.random.uniform(-fov / 2, fov / 2)
+                    random_diff = abs(human_directions[0][0] - random_direction)
+                    episode_random_diff.append(random_diff)
+
+                obs, reward, done, info = self.env.step(target_action)
+                # replay_buffer.store_effect(last_idx, action, reward, done)
+
+            logging.info(self.env.get_episode_summary() + ' in episode {}'.format(i))
+            for model in models:
+                cumulative_attention_diff[model].append(np.mean(episode_attention_diff[model]))
+            cumulative_random_diff.append(np.mean(episode_random_diff))
+
+        logging.info(self.env.get_episodes_summary(num_last_episodes=self.num_test_case))
+        for model in models:
+            logging.info('{:<40} avg attention difference: {:.4f}'.format(model, np.mean(cumulative_attention_diff[model])))
         logging.info('Random attention direction difference: {:.4f}'.format(np.mean(cumulative_random_diff)))
 
     def reinforcement_learning(self, optimizer_spec, exploration, learning_starts=50000,
@@ -430,10 +523,13 @@ class Trainer(object):
         else:
             return torch.IntTensor([random.randrange(self.num_actions)])
 
-    def act(self, obs):
+    def act(self, obs, model=None):
         frames = torch.from_numpy(obs[0]).unsqueeze(0).to(self.device) / 255.0
         goals = torch.from_numpy(np.array(obs[1])).unsqueeze(0).to(self.device)
-        return self.Q(frames, goals).data.max(1)[1].cpu()
+        if model:
+            return model(frames, goals).data.max(1)[1].cpu()
+        else:
+            return self.Q(frames, goals).data.max(1)[1].cpu()
 
     def _td_update(self, optimizer):
         # Use the replay buffer to sample a batch of transitions
@@ -668,11 +764,12 @@ def main():
     parser.add_argument('--test', default=False, action='store_true')
     parser.add_argument('--test_il', default=False, action='store_true')
     parser.add_argument('--test_rl', default=False, action='store_true')
+    parser.add_argument('--test_all_models', default=False, action='store_true')
     parser.add_argument('--num_test_case', type=int, default=200)
     parser.add_argument('--visualize_step', default=False, action='store_true')
     args = parser.parse_args()
 
-    if args.test_il or args.test_rl:
+    if args.test_il or args.test_rl or args.test_all_models:
         if not os.path.exists(args.output_dir):
             raise ValueError('Model dir does not exist')
     else:
@@ -728,6 +825,8 @@ def main():
     elif args.test_rl:
         trainer.load_weights(os.path.join(args.output_dir, 'rl_model.pth'))
         trainer.test(args.visualize_step)
+    elif args.test_all_models:
+        trainer.test_all_models()
     else:
         # imitation learning
         if args.with_il:
