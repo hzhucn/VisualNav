@@ -32,7 +32,6 @@ from visual_nav.utils.my_monitor import MyMonitor
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_nav.utils.visualization_tools import heatmap, top_down_view
 from visual_nav.utils.models import model_factory
-from visual_nav.utils.guided_backprop import GuidedBackprop
 
 
 """
