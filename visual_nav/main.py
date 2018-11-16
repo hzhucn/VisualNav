@@ -32,6 +32,7 @@ from visual_nav.utils.my_monitor import MyMonitor
 from visual_nav.utils.schedule import LinearSchedule, ConstantSchedule
 from visual_nav.utils.visualization_tools import heatmap, top_down_view
 from visual_nav.utils.models import model_factory
+from visual_nav.utils.guided_backprop import GuidedBackprop
 
 
 """
@@ -301,7 +302,7 @@ class Trainer(object):
         _, axes = plt.subplots(2, 2, figsize=(12, 12))
         cumulative_attention_diff = defaultdict(list)
         cumulative_random_diff = []
-        for i in range(self.num_test_case):
+        for case_num in range(self.num_test_case):
             obs = self.env.reset()
             done = False
 
@@ -312,7 +313,7 @@ class Trainer(object):
                 full_obs = self.env.unwrapped.compute_coordinate_observation()
                 partial_obs, human_index_mapping = self.env.unwrapped.compute_coordinate_observation(True, True)
                 demonstrator_action = demonstrator.predict(partial_obs)
-                target_action, _ = self._approximate_action(demonstrator_action)
+                target_action, action_index = self._approximate_action(demonstrator_action)
                 demonstrator_attention = demonstrator.model.attention_weights
 
                 # choose humans within FOV
@@ -347,7 +348,25 @@ class Trainer(object):
                         max_cell_index = np.argmax(agent_attention)
                         horizontal_cell_index = max_cell_index % model.W
                     else:
-                        horizontal_cell_index = model.max_response_index.cpu().numpy()[0] % model.W
+                        # horizontal_cell_index = model.max_response_index.cpu().numpy()[0] % model.W
+
+                        # Get gradients
+                        if not model.guided_backprop_initialized:
+                            model.init_guided_backprop()
+                        frames = torch.from_numpy(recent_observations[0]).unsqueeze(0).to(self.device) / 255.0
+                        goals = torch.from_numpy(np.array(recent_observations[1])).unsqueeze(0).to(self.device)
+                        grads = model.generate_gradients(frames, goals, action)
+                        # plt.imshow(grads, cmap='gray')
+                        # plt.show()
+                        weights = np.zeros((model.H, model.W))
+                        scale = int(84 / model.H)
+                        for i in range(model.H):
+                            for j in range(model.W):
+                                weights[i, j] = np.nansum(grads[i*scale:(i+1)*scale, j*scale:(j+1)*scale], )
+                        weights = np.reshape(weights, (1, model.H * model.W))
+                        weights = torch.nn.functional.softmax(torch.from_numpy(weights).squeeze()).numpy()
+                        max_cell_index = np.argmax(weights)
+                        horizontal_cell_index = max_cell_index % model.W
 
                     # compute the distance between two attention directions
                     fov = self.env.unwrapped.fov
@@ -392,7 +411,7 @@ class Trainer(object):
                 obs, reward, done, info = self.env.step(target_action)
                 # replay_buffer.store_effect(last_idx, action, reward, done)
 
-            logging.info(self.env.get_episode_summary() + ' in episode {}'.format(i))
+            logging.info(self.env.get_episode_summary() + ' in episode {}'.format(case_num))
             for model in models:
                 cumulative_attention_diff[model].append(np.mean(episode_attention_diff[model]))
             cumulative_random_diff.append(np.mean(episode_random_diff))

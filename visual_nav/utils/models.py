@@ -19,6 +19,7 @@ class GDNet(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.conv_block = None
 
         # input feature channel size
         self.C = 64
@@ -61,19 +62,25 @@ class GDNet(nn.Module):
         self.fc4 = nn.Linear(image_feature_dim + goal_feature_dim, 256)
         self.fc5 = nn.Linear(256, 520)
         self.fc6 = nn.Linear(520, num_actions)
+        self.fc_block = None
 
         # for visualization
         self.attention_weights = None
         self.max_response_index = None
         self.mean_block_response = None
+        self.guided_backprop_initialized = False
+        self.gradients = None
 
     def forward(self, frames, goals):
         B = goals.size(0)
 
-        # compute feature map -> B, C, H, W
-        frames = F.relu(self.conv1(frames))
-        frames = F.relu(self.conv2(frames))
-        feature_maps = F.relu(self.conv3(frames))
+        if self.guided_backprop_initialized:
+            feature_maps = self.conv_block(frames)
+        else:
+            # compute feature map -> B, C, H, W
+            frames = F.relu(self.conv1(frames))
+            frames = F.relu(self.conv2(frames))
+            feature_maps = F.relu(self.conv3(frames))
 
         if self.with_sa:
             theta_x = self.theta(feature_maps).view(-1, 32, 49).permute(0, 2, 1)
@@ -138,10 +145,59 @@ class GDNet(nn.Module):
 
         # action classification
         fc_inputs = torch.cat([image_features, goal_features], dim=1)
-        outputs = F.relu(self.fc4(fc_inputs))
-        outputs = F.relu(self.fc5(outputs))
-        outputs = self.fc6(outputs)
+        if self.guided_backprop_initialized:
+            outputs = self.fc_block(fc_inputs)
+        else:
+            outputs = F.relu(self.fc4(fc_inputs))
+            outputs = F.relu(self.fc5(outputs))
+            outputs = self.fc6(outputs)
         return outputs
+
+    def init_guided_backprop(self):
+        self.conv_block = nn.Sequential(self.conv1, nn.ReLU(), self.conv2, nn.ReLU(), self.conv3)
+        self.fc_block = nn.Sequential(self.fc4, nn.ReLU(), self.fc5, nn.ReLU(), self.fc6)
+
+        self.guided_backprop_initialized = True
+        self.gradients = None
+        self.eval()
+
+        # update relus
+        def relu_hook_function(module, grad_in, grad_out):
+            """
+            If there is a negative gradient, changes it to zero
+            """
+            if isinstance(module, nn.ReLU):
+                return (torch.clamp(grad_in[0], min=0.0),)
+
+        # Loop through layers, hook up ReLUs with relu_hook_function
+        for pos, module in self.conv_block._modules.items():
+            if isinstance(module, nn.ReLU):
+                module.register_backward_hook(relu_hook_function)
+        for pos, module in self.fc_block._modules.items():
+            if isinstance(module, nn.ReLU):
+                module.register_backward_hook(relu_hook_function)
+
+        # Register hook to the first layer
+        # hook layers
+        def hook_function(module, grad_in, grad_out):
+            self.gradients = grad_in[0]
+
+        # first_layer = list(self.model.features._modules.items())[0][1]
+        first_layer = list(self.conv_block._modules.items())[0][1]
+        first_layer.register_backward_hook(hook_function)
+
+    def generate_gradients(self, frames, goals, target_class):
+        frames_input = torch.autograd.Variable(frames.cuda(), requires_grad=True)
+
+        model_output = self.forward(frames_input, goals)
+        # Zero gradients
+        self.zero_grad()
+        # Target for backprop
+        one_hot_output = torch.FloatTensor(1, model_output.size()[-1]).zero_().to(frames.device)
+        one_hot_output[0][target_class] = 1
+        # Backward pass
+        model_output.backward(gradient=one_hot_output)
+        return frames_input.grad.data[0, 0, :, :]
 
 
 class PlainCNN(GDNet):
