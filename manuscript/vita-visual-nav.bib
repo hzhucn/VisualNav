@@ -1,0 +1,1286 @@
+
+@article{bojarski_end_2016,
+	title = {End to {End} {Learning} for {Self}-{Driving} {Cars}},
+	url = {http://arxiv.org/abs/1604.07316},
+	abstract = {We trained a convolutional neural network (CNN) to map raw pixels from a single front-facing camera directly to steering commands. This end-to-end approach proved surprisingly powerful. With minimum training data from humans the system learns to drive in traffic on local roads with or without lane markings and on highways. It also operates in areas with unclear visual guidance such as in parking lots and on unpaved roads. The system automatically learns internal representations of the necessary processing steps such as detecting useful road features with only the human steering angle as the training signal. We never explicitly trained it to detect, for example, the outline of roads. Compared to explicit decomposition of the problem, such as lane marking detection, path planning, and control, our end-to-end system optimizes all processing steps simultaneously. We argue that this will eventually lead to better performance and smaller systems. Better performance will result because the internal components self-optimize to maximize overall system performance, instead of optimizing human-selected intermediate criteria, e.g., lane detection. Such criteria understandably are selected for ease of human interpretation which doesn't automatically guarantee maximum system performance. Smaller networks are possible because the system learns to solve the problem with the minimal number of processing steps. We used an NVIDIA DevBox and Torch 7 for training and an NVIDIA DRIVE(TM) PX self-driving car computer also running Torch 7 for determining where to drive. The system operates at 30 frames per second (FPS).},
+	urldate = {2018-11-11},
+	journal = {arXiv:1604.07316 [cs]},
+	author = {Bojarski, Mariusz and Del Testa, Davide and Dworakowski, Daniel and Firner, Bernhard and Flepp, Beat and Goyal, Prasoon and Jackel, Lawrence D. and Monfort, Mathew and Muller, Urs and Zhang, Jiakai and Zhang, Xin and Zhao, Jake and Zieba, Karol},
+	month = apr,
+	year = {2016},
+	note = {arXiv: 1604.07316},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Neural and Evolutionary Computing, Computer Science - Machine Learning},
+	file = {arXiv\:1604.07316 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\UWF4CZFL\\Bojarski et al. - 2016 - End to End Learning for Self-Driving Cars.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\B2TXFTKR\\1604.html:text/html}
+}
+
+@article{anderson_vision-and-language_2017,
+	title = {Vision-and-{Language} {Navigation}: {Interpreting} visually-grounded navigation instructions in real environments},
+	shorttitle = {Vision-and-{Language} {Navigation}},
+	url = {http://arxiv.org/abs/1711.07280},
+	abstract = {A robot that can carry out a natural-language instruction has been a dream since before the Jetsons cartoon series imagined a life of leisure mediated by a fleet of attentive robot helpers. It is a dream that remains stubbornly distant. However, recent advances in vision and language methods have made incredible progress in closely related areas. This is significant because a robot interpreting a natural-language navigation instruction on the basis of what it sees is carrying out a vision and language process that is similar to Visual Question Answering. Both tasks can be interpreted as visually grounded sequence-to-sequence translation problems, and many of the same methods are applicable. To enable and encourage the application of vision and language methods to the problem of interpreting visually-grounded navigation instructions, we present the Matterport3D Simulator -- a large-scale reinforcement learning environment based on real imagery. Using this simulator, which can in future support a range of embodied vision and language tasks, we provide the first benchmark dataset for visually-grounded natural language navigation in real buildings -- the Room-to-Room (R2R) dataset.},
+	urldate = {2018-11-10},
+	journal = {arXiv:1711.07280 [cs]},
+	author = {Anderson, Peter and Wu, Qi and Teney, Damien and Bruce, Jake and Johnson, Mark and Sünderhauf, Niko and Reid, Ian and Gould, Stephen and Hengel, Anton van den},
+	month = nov,
+	year = {2017},
+	note = {arXiv: 1711.07280},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics, Computer Science - Artificial Intelligence, Computer Science - Computation and Language},
+	file = {arXiv\:1711.07280 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\4KLMVFLL\\Anderson et al. - 2017 - Vision-and-Language Navigation Interpreting visua.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\2C37P6HW\\1711.html:text/html}
+}
+
+@article{chen_crowd-robot_2018,
+	title = {Crowd-{Robot} {Interaction}: {Crowd}-aware {Robot} {Navigation} with {Attention}-based {Deep} {Reinforcement} {Learning}},
+	shorttitle = {Crowd-{Robot} {Interaction}},
+	url = {http://arxiv.org/abs/1809.08835},
+	abstract = {Mobility in an effective and socially-compliant manner is an essential yet challenging task for robots operating in crowded spaces. Recent works have shown the power of deep reinforcement learning techniques to learn socially cooperative policies. However, their cooperation ability deteriorates as the crowd grows since they typically relax the problem as a one-way Human-Robot interaction problem. In this work, we want to go beyond ﬁrst-order Human-Robot interaction and more explicitly model Crowd-Robot Interaction (CRI). We propose to (i) rethink pairwise interactions with a selfattention mechanism, and (ii) jointly model Human-Robot as well as Human-Human interactions in the deep reinforcement learning framework. Our model captures the Human-Human interactions occurring in dense crowds that indirectly affects the robot’s anticipation capability. Our proposed attentive pooling mechanism learns the collective importance of neighboring humans with respect to their future states. Various experiments demonstrate that our model can anticipate human dynamics and navigate in crowds with time efﬁciency, outperforming state-of-the-art methods.},
+	language = {en},
+	urldate = {2018-11-10},
+	journal = {arXiv:1809.08835 [cs]},
+	author = {Chen, Changan and Liu, Yuejiang and Kreiss, Sven and Alahi, Alexandre},
+	month = sep,
+	year = {2018},
+	note = {arXiv: 1809.08835},
+	keywords = {Computer Science - Robotics, Computer Science - Machine Learning},
+	file = {Chen et al. - 2018 - Crowd-Robot Interaction Crowd-aware Robot Navigat.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\6R9HR5EA\\Chen et al. - 2018 - Crowd-Robot Interaction Crowd-aware Robot Navigat.pdf:application/pdf}
+}
+
+@article{paden_survey_2016,
+	title = {A {Survey} of {Motion} {Planning} and {Control} {Techniques} for {Self}-driving {Urban} {Vehicles}},
+	url = {http://arxiv.org/abs/1604.07446},
+	abstract = {Self-driving vehicles are a maturing technology with the potential to reshape mobility by enhancing the safety, accessibility, efﬁciency, and convenience of automotive transportation. Safety-critical tasks that must be executed by a self-driving vehicle include planning of motions through a dynamic environment shared with other vehicles and pedestrians, and their robust executions via feedback control. The objective of this paper is to survey the current state of the art on planning and control algorithms with particular regard to the urban setting. A selection of proposed techniques is reviewed along with a discussion of their effectiveness. The surveyed approaches differ in the vehicle mobility model used, in assumptions on the structure of the environment, and in computational requirements. The side-by-side comparison presented in this survey helps to gain insight into the strengths and limitations of the reviewed approaches and assists with system level design choices.},
+	language = {en},
+	urldate = {2018-11-01},
+	journal = {arXiv:1604.07446 [cs]},
+	author = {Paden, Brian and Cap, Michal and Yong, Sze Zheng and Yershov, Dmitry and Frazzoli, Emilio},
+	month = apr,
+	year = {2016},
+	note = {arXiv: 1604.07446},
+	keywords = {Computer Science - Robotics},
+	file = {Paden et al. - 2016 - A Survey of Motion Planning and Control Techniques.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\BRSFE54E\\Paden et al. - 2016 - A Survey of Motion Planning and Control Techniques.pdf:application/pdf}
+}
+
+@inproceedings{chakravarty_cnn-based_2017,
+	title = {{CNN}-based single image obstacle avoidance on a quadrotor},
+	doi = {10.1109/ICRA.2017.7989752},
+	abstract = {This paper demonstrates the use of a single forward facing camera for obstacle avoidance on a quadrotor. We train a CNN for estimating depth from a single image. The depth map is then fed to a behaviour arbitration based control algorithm that steers the quadrotor away from obstacles. We conduct experiments with simulated and real drones in a variety of environments.},
+	booktitle = {2017 {IEEE} {International} {Conference} on {Robotics} and {Automation} ({ICRA})},
+	author = {Chakravarty, P. and Kelchtermans, K. and Roussel, T. and Wellens, S. and Tuytelaars, T. and Eycken, L. Van},
+	month = may,
+	year = {2017},
+	keywords = {mobile robots, Robot sensing systems, collision avoidance, Collision avoidance, neural nets, Training, robot vision, Cameras, autonomous aerial vehicles, helicopters, behaviour arbitration based control algorithm, CNN-based single image obstacle avoidance, convolution, depth estimation, depth map, drones, Drones, Indoor environments, quadrotor, single forward facing camera},
+	pages = {6369--6374},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\9ENI6GRI\\7989752.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\ARNDBR5R\\Chakravarty et al. - 2017 - CNN-based single image obstacle avoidance on a qua.pdf:application/pdf}
+}
+
+@article{giusti_machine_2016,
+	title = {A {Machine} {Learning} {Approach} to {Visual} {Perception} of {Forest} {Trails} for {Mobile} {Robots}},
+	volume = {1},
+	issn = {2377-3766},
+	doi = {10.1109/LRA.2015.2509024},
+	abstract = {We study the problem of perceiving forest or mountain trails from a single monocular image acquired from the viewpoint of a robot traveling on the trail itself. Previous literature focused on trail segmentation, and used low-level features such as image saliency or appearance contrast; we propose a different approach based on a deep neural network used as a supervised image classifier. By operating on the whole image at once, our system outputs the main direction of the trail compared to the viewing direction. Qualitative and quantitative results computed on a large real-world dataset (which we provide for download) show that our approach outperforms alternatives, and yields an accuracy comparable to the accuracy of humans that are tested on the same image classification task. Preliminary results on using this information for quadrotor control in unseen trails are reported. To the best of our knowledge, this is the first letter that describes an approach to perceive forest trials, which is demonstrated on a quadrotor micro aerial vehicle.},
+	number = {2},
+	journal = {IEEE Robotics and Automation Letters},
+	author = {Giusti, A. and Guzzi, J. and Cireşan, D. C. and He, F. and Rodríguez, J. P. and Fontana, F. and Faessler, M. and Forster, C. and Schmidhuber, J. and Caro, G. D. and Scaramuzza, D. and Gambardella, L. M.},
+	month = jul,
+	year = {2016},
+	keywords = {mobile robots, Mobile robots, neural nets, Roads, robot vision, image classification, Cameras, Deep Learning, learning (artificial intelligence), Robot vision systems, autonomous aerial vehicles, helicopters, microrobots, Aerial Robotics, deep-neural network, forest trails, Image segmentation, Machine Learning, machine learning approach, monocular image, quadrotor microaerial vehicle control, qualitative analysis, quantitative analysis, supervised image classifier, viewing direction, visual perception, Visual perception, Visual-Based Navigation},
+	pages = {661--667},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\5F69W6AX\\7358076.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\C7HECCHC\\Giusti et al. - 2016 - A Machine Learning Approach to Visual Perception o.pdf:application/pdf}
+}
+
+@inproceedings{chen_deepdriving:_2015,
+	address = {Santiago, Chile},
+	title = {{DeepDriving}: {Learning} {Affordance} for {Direct} {Perception} in {Autonomous} {Driving}},
+	isbn = {978-1-4673-8391-2},
+	shorttitle = {{DeepDriving}},
+	url = {http://ieeexplore.ieee.org/document/7410669/},
+	doi = {10.1109/ICCV.2015.312},
+	abstract = {Today, there are two major paradigms for vision-based autonomous driving systems: mediated perception approaches that parse an entire scene to make a driving decision, and behavior reﬂex approaches that directly map an input image to a driving action by a regressor. In this paper, we propose a third paradigm: a direct perception approach to estimate the affordance for driving. We propose to map an input image to a small number of key perception indicators that directly relate to the affordance of a road/trafﬁc state for driving. Our representation provides a set of compact yet complete descriptions of the scene to enable a simple controller to drive autonomously. Falling in between the two extremes of mediated perception and behavior reﬂex, we argue that our direct perception representation provides the right level of abstraction. To demonstrate this, we train a deep Convolutional Neural Network using recording from 12 hours of human driving in a video game and show that our model can work well to drive a car in a very diverse set of virtual environments. We also train a model for car distance estimation on the KITTI dataset. Results show that our direct perception approach can generalize well to real driving images. Source code and data are available on our project website.},
+	language = {en},
+	urldate = {2018-10-12},
+	booktitle = {2015 {IEEE} {International} {Conference} on {Computer} {Vision} ({ICCV})},
+	publisher = {IEEE},
+	author = {Chen, Chenyi and Seff, Ari and Kornhauser, Alain and Xiao, Jianxiong},
+	month = dec,
+	year = {2015},
+	pages = {2722--2730},
+	file = {Chen et al. - 2015 - DeepDriving Learning Affordance for Direct Percep.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\F76TYD4H\\Chen et al. - 2015 - DeepDriving Learning Affordance for Direct Percep.pdf:application/pdf}
+}
+
+@article{chiang_learning_2018,
+	title = {Learning {Navigation} {Behaviors} {End} to {End}},
+	url = {https://arxiv.org/abs/1809.10124v1},
+	language = {en},
+	urldate = {2018-10-12},
+	author = {Chiang, Hao-Tien Lewis and Faust, Aleksandra and Fiser, Marek and Francis, Anthony},
+	month = sep,
+	year = {2018},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\56FKFEJT\\Chiang et al. - 2018 - Learning Navigation Behaviors End to End.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\QMBB9KIV\\1809.html:text/html}
+}
+
+@article{das_embodied_2017,
+	title = {Embodied {Question} {Answering}},
+	url = {http://arxiv.org/abs/1711.11543},
+	abstract = {We present a new AI task -- Embodied Question Answering (EmbodiedQA) -- where an agent is spawned at a random location in a 3D environment and asked a question ("What color is the car?"). In order to answer, the agent must first intelligently navigate to explore the environment, gather information through first-person (egocentric) vision, and then answer the question ("orange"). This challenging task requires a range of AI skills -- active perception, language understanding, goal-driven navigation, commonsense reasoning, and grounding of language into actions. In this work, we develop the environments, end-to-end-trained reinforcement learning agents, and evaluation protocols for EmbodiedQA.},
+	urldate = {2018-11-10},
+	journal = {arXiv:1711.11543 [cs]},
+	author = {Das, Abhishek and Datta, Samyak and Gkioxari, Georgia and Lee, Stefan and Parikh, Devi and Batra, Dhruv},
+	month = nov,
+	year = {2017},
+	note = {arXiv: 1711.11543},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Artificial Intelligence, Computer Science - Machine Learning, Computer Science - Computation and Language},
+	file = {arXiv\:1711.11543 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\99PHBG4G\\Das et al. - 2017 - Embodied Question Answering.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\MPUXPGM5\\1711.html:text/html}
+}
+
+@article{zhu_target-driven_2016,
+	title = {Target-driven {Visual} {Navigation} in {Indoor} {Scenes} using {Deep} {Reinforcement} {Learning}},
+	url = {http://arxiv.org/abs/1609.05143},
+	abstract = {Two less addressed issues of deep reinforcement learning are (1) lack of generalization capability to new target goals, and (2) data inefficiency i.e., the model requires several (and often costly) episodes of trial and error to converge, which makes it impractical to be applied to real-world scenarios. In this paper, we address these two issues and apply our model to the task of target-driven visual navigation. To address the first issue, we propose an actor-critic model whose policy is a function of the goal as well as the current state, which allows to better generalize. To address the second issue, we propose AI2-THOR framework, which provides an environment with high-quality 3D scenes and physics engine. Our framework enables agents to take actions and interact with objects. Hence, we can collect a huge number of training samples efficiently. We show that our proposed method (1) converges faster than the state-of-the-art deep reinforcement learning methods, (2) generalizes across targets and across scenes, (3) generalizes to a real robot scenario with a small amount of fine-tuning (although the model is trained in simulation), (4) is end-to-end trainable and does not need feature engineering, feature matching between frames or 3D reconstruction of the environment. The supplementary video can be accessed at the following link: https://youtu.be/SmBxMDiOrvs.},
+	urldate = {2018-11-10},
+	journal = {arXiv:1609.05143 [cs]},
+	author = {Zhu, Yuke and Mottaghi, Roozbeh and Kolve, Eric and Lim, Joseph J. and Gupta, Abhinav and Fei-Fei, Li and Farhadi, Ali},
+	month = sep,
+	year = {2016},
+	note = {arXiv: 1609.05143},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1609.05143 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\38FD4FMB\\Zhu et al. - 2016 - Target-driven Visual Navigation in Indoor Scenes u.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\DVGSF7YK\\1609.html:text/html}
+}
+
+@article{mirowski_learning_2018,
+	title = {Learning to {Navigate} in {Cities} {Without} a {Map}},
+	url = {http://arxiv.org/abs/1804.00168},
+	abstract = {Navigating through unstructured environments is a basic capability of intelligent creatures, and thus is of fundamental interest in the study and development of artificial intelligence. Long-range navigation is a complex cognitive task that relies on developing an internal representation of space, grounded by recognisable landmarks and robust visual processing, that can simultaneously support continuous self-localisation ("I am here") and a representation of the goal ("I am going there"). Building upon recent research that applies deep reinforcement learning to maze navigation problems, we present an end-to-end deep reinforcement learning approach that can be applied on a city scale. Recognising that successful navigation relies on integration of general policies with locale-specific knowledge, we propose a dual pathway architecture that allows locale-specific features to be encapsulated, while still enabling transfer to multiple cities. We present an interactive navigation environment that uses Google StreetView for its photographic content and worldwide coverage, and demonstrate that our learning method allows agents to learn to navigate multiple cities and to traverse to target destinations that may be kilometres away. A video summarizing our research and showing the trained agent in diverse city environments as well as on the transfer task is available at: https://sites.google.com/view/streetlearn.},
+	urldate = {2018-11-05},
+	journal = {arXiv:1804.00168 [cs]},
+	author = {Mirowski, Piotr and Grimes, Matthew Koichi and Malinowski, Mateusz and Hermann, Karl Moritz and Anderson, Keith and Teplyashin, Denis and Simonyan, Karen and Kavukcuoglu, Koray and Zisserman, Andrew and Hadsell, Raia},
+	month = mar,
+	year = {2018},
+	note = {arXiv: 1804.00168},
+	keywords = {Computer Science - Artificial Intelligence},
+	file = {arXiv\:1804.00168 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\AR6X6YTR\\Mirowski et al. - 2018 - Learning to Navigate in Cities Without a Map.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\2KPV58JJ\\1804.html:text/html}
+}
+
+@article{zhang_self-attention_2018,
+	title = {Self-{Attention} {Generative} {Adversarial} {Networks}},
+	url = {http://arxiv.org/abs/1805.08318},
+	abstract = {In this paper, we propose the Self-Attention Generative Adversarial Network (SAGAN) which allows attention-driven, long-range dependency modeling for image generation tasks. Traditional convolutional GANs generate high-resolution details as a function of only spatially local points in lower-resolution feature maps. In SAGAN, details can be generated using cues from all feature locations. Moreover, the discriminator can check that highly detailed features in distant portions of the image are consistent with each other. Furthermore, recent work has shown that generator conditioning affects GAN performance. Leveraging this insight, we apply spectral normalization to the GAN generator and find that this improves training dynamics. The proposed SAGAN achieves the state-of-the-art results, boosting the best published Inception score from 36.8 to 52.52 and reducing Frechet Inception distance from 27.62 to 18.65 on the challenging ImageNet dataset. Visualization of the attention layers shows that the generator leverages neighborhoods that correspond to object shapes rather than local regions of fixed shape.},
+	urldate = {2018-11-04},
+	journal = {arXiv:1805.08318 [cs, stat]},
+	author = {Zhang, Han and Goodfellow, Ian and Metaxas, Dimitris and Odena, Augustus},
+	month = may,
+	year = {2018},
+	note = {arXiv: 1805.08318},
+	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning},
+	file = {arXiv\:1805.08318 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\3TR55P52\\Zhang et al. - 2018 - Self-Attention Generative Adversarial Networks.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\I9LWTUBM\\1805.html:text/html}
+}
+
+@article{wang_non-local_2017,
+	title = {Non-local {Neural} {Networks}},
+	url = {http://arxiv.org/abs/1711.07971},
+	abstract = {Both convolutional and recurrent operations are building blocks that process one local neighborhood at a time. In this paper, we present non-local operations as a generic family of building blocks for capturing long-range dependencies. Inspired by the classical non-local means method in computer vision, our non-local operation computes the response at a position as a weighted sum of the features at all positions. This building block can be plugged into many computer vision architectures. On the task of video classification, even without any bells and whistles, our non-local models can compete or outperform current competition winners on both Kinetics and Charades datasets. In static image recognition, our non-local models improve object detection/segmentation and pose estimation on the COCO suite of tasks. Code is available at https://github.com/facebookresearch/video-nonlocal-net .},
+	urldate = {2018-11-04},
+	journal = {arXiv:1711.07971 [cs]},
+	author = {Wang, Xiaolong and Girshick, Ross and Gupta, Abhinav and He, Kaiming},
+	month = nov,
+	year = {2017},
+	note = {arXiv: 1711.07971},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1711.07971 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\S5U7L7MA\\Wang et al. - 2017 - Non-local Neural Networks.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\NTDPM8Z9\\1711.html:text/html}
+}
+
+@article{mnih_recurrent_2014,
+	title = {Recurrent {Models} of {Visual} {Attention}},
+	url = {http://arxiv.org/abs/1406.6247},
+	abstract = {Applying convolutional neural networks to large images is computationally expensive because the amount of computation scales linearly with the number of image pixels. We present a novel recurrent neural network model that is capable of extracting information from an image or video by adaptively selecting a sequence of regions or locations and only processing the selected regions at high resolution. Like convolutional neural networks, the proposed model has a degree of translation invariance built-in, but the amount of computation it performs can be controlled independently of the input image size. While the model is non-differentiable, it can be trained using reinforcement learning methods to learn task-specific policies. We evaluate our model on several image classification tasks, where it significantly outperforms a convolutional neural network baseline on cluttered images, and on a dynamic visual control problem, where it learns to track a simple object without an explicit training signal for doing so.},
+	urldate = {2018-10-16},
+	journal = {arXiv:1406.6247 [cs, stat]},
+	author = {Mnih, Volodymyr and Heess, Nicolas and Graves, Alex and Kavukcuoglu, Koray},
+	month = jun,
+	year = {2014},
+	note = {arXiv: 1406.6247},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Statistics - Machine Learning, Computer Science - Machine Learning},
+	file = {arXiv\:1406.6247 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\7KYDN7RD\\Mnih et al. - 2014 - Recurrent Models of Visual Attention.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\VJF7JRVS\\1406.html:text/html}
+}
+
+@article{xu_show_2015,
+	title = {Show, {Attend} and {Tell}: {Neural} {Image} {Caption} {Generation} with {Visual} {Attention}},
+	shorttitle = {Show, {Attend} and {Tell}},
+	url = {http://arxiv.org/abs/1502.03044},
+	abstract = {Inspired by recent work in machine translation and object detection, we introduce an attention based model that automatically learns to describe the content of images. We describe how we can train this model in a deterministic manner using standard backpropagation techniques and stochastically by maximizing a variational lower bound. We also show through visualization how the model is able to automatically learn to fix its gaze on salient objects while generating the corresponding words in the output sequence. We validate the use of attention with state-of-the-art performance on three benchmark datasets: Flickr8k, Flickr30k and MS COCO.},
+	urldate = {2018-10-16},
+	journal = {arXiv:1502.03044 [cs]},
+	author = {Xu, Kelvin and Ba, Jimmy and Kiros, Ryan and Cho, Kyunghyun and Courville, Aaron and Salakhutdinov, Ruslan and Zemel, Richard and Bengio, Yoshua},
+	month = feb,
+	year = {2015},
+	note = {arXiv: 1502.03044},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning},
+	file = {arXiv\:1502.03044 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\FGTUGTS7\\Xu et al. - 2015 - Show, Attend and Tell Neural Image Caption Genera.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\WV32EKZG\\1502.html:text/html}
+}
+
+@article{bonin-font_visual_2008,
+	title = {Visual {Navigation} for {Mobile} {Robots}: {A} {Survey}},
+	volume = {53},
+	issn = {0921-0296, 1573-0409},
+	shorttitle = {Visual {Navigation} for {Mobile} {Robots}},
+	url = {http://link.springer.com/10.1007/s10846-008-9235-4},
+	doi = {10.1007/s10846-008-9235-4},
+	abstract = {Mobile robot vision-based navigation has been the source of countless research contributions, from the domains of both vision and control. Vision is becoming more and more common in applications such as localization, automatic map construction, autonomous navigation, path following, inspection, monitoring or risky situation detection. This survey presents those pieces of work, from the nineties until nowadays, which constitute a wide progress in visual navigation techniques for land, aerial and autonomous underwater vehicles. The paper deals with two major approaches: map-based navigation and mapless navigation. Map-based navigation has been in turn subdivided in metric map-based navigation and topological mapbased navigation. Our outline to mapless navigation includes reactive techniques based on qualitative characteristics extraction, appearance-based localization, optical ﬂow, features tracking, plane ground detection/tracking, etc... The recent concept of visual sonar has also been revised.},
+	language = {en},
+	number = {3},
+	urldate = {2018-10-15},
+	journal = {Journal of Intelligent and Robotic Systems},
+	author = {Bonin-Font, Francisco and Ortiz, Alberto and Oliver, Gabriel},
+	month = nov,
+	year = {2008},
+	pages = {263--296},
+	file = {Bonin-Font et al. - 2008 - Visual Navigation for Mobile Robots A Survey.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\7Q6AHQSP\\Bonin-Font et al. - 2008 - Visual Navigation for Mobile Robots A Survey.pdf:application/pdf}
+}
+
+@article{li_diversity_nodate,
+	title = {Diversity {Regularized} {Spatiotemporal} {Attention} for {Video}-{Based} {Person} {Re}-{Identification}},
+	abstract = {Video-based person re-identiﬁcation matches video clips of people across non-overlapping cameras. Most existing methods tackle this problem by encoding each video frame in its entirety and computing an aggregate representation across all frames. In practice, people are often partially occluded, which can corrupt the extracted features. Instead, we propose a new spatiotemporal attention model that automatically discovers a diverse set of distinctive body parts. This allows useful information to be extracted from all frames without succumbing to occlusions and misalignments. The network learns multiple spatial attention models and employs a diversity regularization term to ensure multiple models do not discover the same body part. Features extracted from local image regions are organized by spatial attention model and are combined using temporal attention. As a result, the network learns latent representations of the face, torso and other body parts using the best available image patches from the entire video sequence. Extensive evaluations on three datasets show that our framework outperforms the state-of-the-art approaches by large margins on multiple metrics.},
+	language = {en},
+	author = {Li, Shuang and Bak, Slawomir and Carr, Peter and Wang, Xiaogang},
+	pages = {10},
+	file = {Li et al. - Diversity Regularized Spatiotemporal Attention for.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\KGX8R344\\Li et al. - Diversity Regularized Spatiotemporal Attention for.pdf:application/pdf}
+}
+
+@article{sadeghi_cad2rl:_2016,
+	title = {{CAD}2RL: {Real} {Single}-{Image} {Flight} without a {Single} {Real} {Image}},
+	shorttitle = {{CAD}2RL},
+	url = {http://arxiv.org/abs/1611.04201},
+	abstract = {Deep reinforcement learning has emerged as a promising and powerful technique for automatically acquiring control policies that can process raw sensory inputs, such as images, and perform complex behaviors. However, extending deep RL to real-world robotic tasks has proven challenging, particularly in safety-critical domains such as autonomous flight, where a trial-and-error learning process is often impractical. In this paper, we explore the following question: can we train vision-based navigation policies entirely in simulation, and then transfer them into the real world to achieve real-world flight without a single real training image? We propose a learning method that we call CAD\${\textasciicircum}2\$RL, which can be used to perform collision-free indoor flight in the real world while being trained entirely on 3D CAD models. Our method uses single RGB images from a monocular camera, without needing to explicitly reconstruct the 3D geometry of the environment or perform explicit motion planning. Our learned collision avoidance policy is represented by a deep convolutional neural network that directly processes raw monocular images and outputs velocity commands. This policy is trained entirely on simulated images, with a Monte Carlo policy evaluation algorithm that directly optimizes the network's ability to produce collision-free flight. By highly randomizing the rendering settings for our simulated training set, we show that we can train a policy that generalizes to the real world, without requiring the simulator to be particularly realistic or high-fidelity. We evaluate our method by flying a real quadrotor through indoor environments, and further evaluate the design choices in our simulator through a series of ablation studies on depth prediction. For supplementary video see: https://youtu.be/nXBWmzFrj5s},
+	urldate = {2018-10-11},
+	journal = {arXiv:1611.04201 [cs]},
+	author = {Sadeghi, Fereshteh and Levine, Sergey},
+	month = nov,
+	year = {2016},
+	note = {arXiv: 1611.04201},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics, Computer Science - Machine Learning},
+	file = {arXiv\:1611.04201 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\YASJXHZQ\\Sadeghi and Levine - 2016 - CAD2RL Real Single-Image Flight without a Single .pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\SIWQ8FWR\\1611.html:text/html}
+}
+
+@article{chi_deep_2017,
+	title = {Deep {Steering}: {Learning} {End}-to-{End} {Driving} {Model} from {Spatial} and {Temporal} {Visual} {Cues}},
+	shorttitle = {Deep {Steering}},
+	url = {http://arxiv.org/abs/1708.03798},
+	abstract = {In recent years, autonomous driving algorithms using low-cost vehicle-mounted cameras have attracted increasing endeavors from both academia and industry. There are multiple fronts to these endeavors, including object detection on roads, 3-D reconstruction etc., but in this work we focus on a vision-based model that directly maps raw input images to steering angles using deep networks. This represents a nascent research topic in computer vision. The technical contributions of this work are three-fold. First, the model is learned and evaluated on real human driving videos that are time-synchronized with other vehicle sensors. This differs from many prior models trained from synthetic data in racing games. Second, state-of-the-art models, such as PilotNet, mostly predict the wheel angles independently on each video frame, which contradicts common understanding of driving as a stateful process. Instead, our proposed model strikes a combination of spatial and temporal cues, jointly investigating instantaneous monocular camera observations and vehicle's historical states. This is in practice accomplished by inserting carefully-designed recurrent units (e.g., LSTM and Conv-LSTM) at proper network layers. Third, to facilitate the interpretability of the learned model, we utilize a visual back-propagation scheme for discovering and visualizing image regions crucially influencing the final steering prediction. Our experimental study is based on about 6 hours of human driving data provided by Udacity. Comprehensive quantitative evaluations demonstrate the effectiveness and robustness of our model, even under scenarios like drastic lighting changes and abrupt turning. The comparison with other state-of-the-art models clearly reveals its superior performance in predicting the due wheel angle for a self-driving car.},
+	urldate = {2018-10-11},
+	journal = {arXiv:1708.03798 [cs]},
+	author = {Chi, Lu and Mu, Yadong},
+	month = aug,
+	year = {2017},
+	note = {arXiv: 1708.03798},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1708.03798 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\I5VD7SGX\\Chi and Mu - 2017 - Deep Steering Learning End-to-End Driving Model f.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\DJI5LRKG\\1708.html:text/html}
+}
+
+@inproceedings{michels_high_2005,
+	address = {Bonn, Germany},
+	title = {High speed obstacle avoidance using monocular vision and reinforcement learning},
+	isbn = {978-1-59593-180-1},
+	url = {http://portal.acm.org/citation.cfm?doid=1102351.1102426},
+	doi = {10.1145/1102351.1102426},
+	abstract = {We consider the task of driving a remote control car at high speeds through unstructured outdoor environments. We present an approach in which supervised learning is ﬁrst used to estimate depths from single monocular images. The learning algorithm can be trained either on real camera images labeled with ground-truth distances to the closest obstacles, or on a training set consisting of synthetic graphics images. The resulting algorithm is able to learn monocular vision cues that accurately estimate the relative depths of obstacles in a scene. Reinforcement learning/policy search is then applied within a simulator that renders synthetic scenes. This learns a control policy that selects a steering direction as a function of the vision system’s output. We present results evaluating the predictive ability of the algorithm both on held out test data, and in actual autonomous driving experiments.},
+	language = {en},
+	urldate = {2018-10-11},
+	booktitle = {Proceedings of the 22nd international conference on {Machine} learning  - {ICML} '05},
+	publisher = {ACM Press},
+	author = {Michels, Jeff and Saxena, Ashutosh and Ng, Andrew Y.},
+	year = {2005},
+	pages = {593--600},
+	file = {Michels et al. - 2005 - High speed obstacle avoidance using monocular visi.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\3BF9XNXL\\Michels et al. - 2005 - High speed obstacle avoidance using monocular visi.pdf:application/pdf}
+}
+
+@article{tai_socially_2017,
+	title = {Socially {Compliant} {Navigation} through {Raw} {Depth} {Inputs} with {Generative} {Adversarial} {Imitation} {Learning}},
+	url = {http://arxiv.org/abs/1710.02543},
+	abstract = {We present an approach for mobile robots to learn to navigate in dynamic environments with pedestrians via raw depth inputs, in a socially compliant manner. To achieve this, we adopt a generative adversarial imitation learning (GAIL) strategy, which improves upon a pre-trained behavior cloning policy. Our approach overcomes the disadvantages of previous methods, as they heavily depend on the full knowledge of the location and velocity information of nearby pedestrians, which not only requires specific sensors, but also the extraction of such state information from raw sensory input could consume much computation time. In this paper, our proposed GAIL-based model performs directly on raw depth inputs and plans in real-time. Experiments show that our GAIL-based approach greatly improves the safety and efficiency of the behavior of mobile robots from pure behavior cloning. The real-world deployment also shows that our method is capable of guiding autonomous vehicles to navigate in a socially compliant manner directly through raw depth inputs. In addition, we release a simulation plugin for modeling pedestrian behaviors based on the social force model.},
+	urldate = {2018-10-10},
+	journal = {arXiv:1710.02543 [cs]},
+	author = {Tai, Lei and Zhang, Jingwei and Liu, Ming and Burgard, Wolfram},
+	month = oct,
+	year = {2017},
+	note = {arXiv: 1710.02543},
+	keywords = {Computer Science - Robotics, Computer Science - Artificial Intelligence, Computer Science - Machine Learning},
+	file = {arXiv\:1710.02543 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\DHD22IYE\\Tai et al. - 2017 - Socially Compliant Navigation through Raw Depth In.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\ZBF58DS3\\1710.html:text/html}
+}
+
+@inproceedings{winters_visual_2001,
+	title = {Visual attention-based robot navigation using information sampling},
+	volume = {3},
+	doi = {10.1109/IROS.2001.977218},
+	abstract = {Presents a method whereby an autonomous mobile robot automatically selects the most informative data from a set of images acquired a priori, using a statistical method termed information sampling. These data could be a single pixel or a number scattered throughout an image. This information is then used to build a topological map of the environment. Our sole input data are omnidirectional images obtained from a catadioptric panoramic camera. Experimental results show that by using only the best data the topological position of a robot, visually maneuvering through a simple indoor environment, can easily be determined.},
+	booktitle = {Proceedings 2001 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems}. {Expanding} the {Societal} {Role} of {Robotics} in the the {Next} {Millennium} ({Cat}. {No}.01CH37180)},
+	author = {Winters, N. and Santos-Victor, J.},
+	month = oct,
+	year = {2001},
+	keywords = {mobile robots, Mobile robots, Navigation, robot vision, Cameras, path planning, Robot vision systems, Robotics and automation, autonomous mobile robot, catadioptric panoramic camera, image reconstruction, Image sampling, indoor environment, information sampling, matrix algebra, omnidirectional images, Pixel, Sampling methods, Scattering, Statistical analysis, statistical method, topological map, topological position, visual attention-based robot navigation},
+	pages = {1670--1675 vol.3},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\BSSEY9NL\\977218.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\HQ2LZVHJ\\Winters and Santos-Victor - 2001 - Visual attention-based robot navigation using info.pdf:application/pdf}
+}
+
+@article{choi_multi-focus_2017,
+	title = {Multi-focus {Attention} {Network} for {Efficient} {Deep} {Reinforcement} {Learning}},
+	url = {http://arxiv.org/abs/1712.04603},
+	abstract = {Deep reinforcement learning (DRL) has shown incredible performance in learning various tasks to the human level. However, unlike human perception, current DRL models connect the entire low-level sensory input to the state-action values rather than exploiting the relationship between and among entities that constitute the sensory input. Because of this difference, DRL needs vast amount of experience samples to learn. In this paper, we propose a Multi-focus Attention Network (MANet) which mimics human ability to spatially abstract the low-level sensory input into multiple entities and attend to them simultaneously. The proposed method first divides the low-level input into several segments which we refer to as partial states. After this segmentation, parallel attention layers attend to the partial states relevant to solving the task. Our model estimates state-action values using these attended partial states. In our experiments, MANet attains highest scores with significantly less experience samples. Additionally, the model shows higher performance compared to the Deep Q-network and the single attention model as benchmarks. Furthermore, we extend our model to attentive communication model for performing multi-agent cooperative tasks. In multi-agent cooperative task experiments, our model shows 20\% faster learning than existing state-of-the-art model.},
+	urldate = {2018-11-12},
+	journal = {arXiv:1712.04603 [cs, stat]},
+	author = {Choi, Jinyoung and Lee, Beom-Jin and Zhang, Byoung-Tak},
+	month = dec,
+	year = {2017},
+	note = {arXiv: 1712.04603},
+	keywords = {Computer Science - Artificial Intelligence, Statistics - Machine Learning, Computer Science - Machine Learning},
+	file = {arXiv\:1712.04603 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\YESLFXCX\\Choi et al. - 2017 - Multi-focus Attention Network for Efficient Deep R.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\JA9MIA92\\1712.html:text/html}
+}
+
+@inproceedings{qureshi_show_2017,
+	title = {Show, attend and interact: {Perceivable} human-robot social interaction through neural attention {Q}-network},
+	shorttitle = {Show, attend and interact},
+	doi = {10.1109/ICRA.2017.7989193},
+	abstract = {For a safe, natural and effective human-robot social interaction, it is essential to develop a system that allows a robot to demonstrate the perceivable responsive behaviors to complex human behaviors. We introduce the Multimodal Deep Attention Recurrent Q-Network using which the robot exhibits human-like social interaction skills after 14 days of interacting with people in an uncontrolled real world. Each and every day during the 14 days, the system gathered robot interaction experiences with people through a hit-and-trial method and then trained the MDARQN on these experiences using end-to-end reinforcement learning approach. The results of interaction based learning indicate that the robot has learned to respond to complex human behaviors in a perceivable and socially acceptable manner.},
+	booktitle = {2017 {IEEE} {International} {Conference} on {Robotics} and {Automation} ({ICRA})},
+	author = {Qureshi, A. H. and Nakamura, Y. and Yoshikawa, Y. and Ishiguro, H.},
+	month = may,
+	year = {2017},
+	keywords = {Robot sensing systems, neural nets, Neural networks, Training, Visualization, learning (artificial intelligence), human-robot interaction, Mathematical model, complex human behaviors, end-to-end reinforcement learning approach, hit-and-trial method, human-like social interaction skills, human-robot social interaction, interaction based learning, MDARQN, multimodal deep attention recurrent Q-network, neural attention Q-network, perceivable responsive behaviors, Random access memory, robot interaction experiences},
+	pages = {1639--1645},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\9CGMSSRD\\authors.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\Y5VGFE4L\\Qureshi et al. - 2017 - Show, attend and interact Perceivable human-robot.pdf:application/pdf}
+}
+
+@article{carlone_attention_2016,
+	title = {Attention and {Anticipation} in {Fast} {Visual}-{Inertial} {Navigation}},
+	url = {http://arxiv.org/abs/1610.03344},
+	abstract = {We study a Visual-Inertial Navigation (VIN) problem in which a robot needs to estimate its state using an on-board camera and an inertial sensor, without any prior knowledge of the external environment. We consider the case in which the robot can allocate limited resources to VIN, due to tight computational constraints. Therefore, we answer the following question: under limited resources, what are the most relevant visual cues to maximize the performance of visual-inertial navigation? Our approach has four key ingredients. First, it is task-driven, in that the selection of the visual cues is guided by a metric quantifying the VIN performance. Second, it exploits the notion of anticipation, since it uses a simpliﬁed model for forwardsimulation of robot dynamics, predicting the utility of a set of visual cues over a future time horizon. Third, it is efﬁcient and easy to implement, since it leads to a greedy algorithm for the selection of the most relevant visual cues. Fourth, it provides formal performance guarantees: we leverage submodularity to prove that the greedy selection cannot be far from the optimal (combinatorial) selection. Simulations and real experiments on agile drones show that our approach ensures state-of-the-art VIN performance while maintaining a lean processing time. In the easy scenarios, our approach outperforms appearance-based feature selection in terms of localization errors. In the most challenging scenarios, it enables accurate visual-inertial navigation while appearance-based feature selection fails to track robot’s motion during aggressive maneuvers.},
+	language = {en},
+	urldate = {2018-11-12},
+	journal = {arXiv:1610.03344 [cs]},
+	author = {Carlone, Luca and Karaman, Sertac},
+	month = oct,
+	year = {2016},
+	note = {arXiv: 1610.03344},
+	keywords = {Computer Science - Robotics, I.2.9, 68W01, 68W40, 68W25, 49K30, G.1.6}
+}
+
+@article{loquercio_dronet:_2018,
+	title = {{DroNet}: {Learning} to {Fly} by {Driving}},
+	volume = {3},
+	issn = {2377-3766},
+	shorttitle = {{DroNet}},
+	doi = {10.1109/LRA.2018.2795643},
+	abstract = {Civilian drones are soon expected to be used in a wide variety of tasks, such as aerial surveillance, delivery, or monitoring of existing architectures. Nevertheless, their deployment in urban environments has so far been limited. Indeed, in unstructured and highly dynamic scenarios, drones face numerous challenges to navigate autonomously in a feasible and safe way. In contrast to traditional “map-localize-plan” methods, this letter explores a data-driven approach to cope with the above challenges. To accomplish this, we propose DroNet: a convolutional neural network that can safely drive a drone through the streets of a city. Designed as a fast eight-layers residual network, DroNet produces two outputs for each single input image: A steering angle to keep the drone navigating while avoiding obstacles, and a collision probability to let the UAV recognize dangerous situations and promptly react to them. The challenge is however to collect enough data in an unstructured outdoor environment such as a city. Clearly, having an expert pilot providing training trajectories is not an option given the large amount of data required and, above all, the risk that it involves for other vehicles or pedestrians moving in the streets. Therefore, we propose to train a UAV from data collected by cars and bicycles, which, already integrated into the urban environment, would not endanger other vehicles and pedestrians. Although trained on city streets from the viewpoint of urban vehicles, the navigation policy learned by DroNet is highly generalizable. Indeed, it allows a UAV to successfully fly at relative high altitudes and even in indoor environments, such as parking lots and corridors. To share our findings with the robotics community, we publicly release all our datasets, code, and trained networks.},
+	number = {2},
+	journal = {IEEE Robotics and Automation Letters},
+	author = {Loquercio, A. and Maqueda, A. I. and del-Blanco, C. R. and Scaramuzza, D.},
+	month = apr,
+	year = {2018},
+	keywords = {mobile robots, collision avoidance, Navigation, pedestrians, convolutional neural network, Robots, Training, control engineering computing, robot vision, image sensors, learning (artificial intelligence), obstacle avoidance, autonomous aerial vehicles, Learning from demonstration, feedforward neural nets, UAV, Drones, aerial surveillance, aerial systems: perception and autonomy, aerospace computing, Automobiles, bicycles, cars, city streets, civilian drones, collision probability, dangerous situation recognition, data-driven approach, deep learning in robotics and automation, drone navigation, DroNet, eight-layers residual network, highly dynamic scenarios, indoor environments, navigation policy, relative high altitudes, single input image, steering angle, surveillance, traditional map-localize-plan method, trained networks, training trajectories, unstructured outdoor environment, unstructured scenarios, Urban areas, urban environment, urban vehicles},
+	pages = {1088--1095},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\XTIVNS9V\\8264734.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\LNFCUH8L\\Loquercio et al. - 2018 - DroNet Learning to Fly by Driving.pdf:application/pdf}
+}
+
+@article{liang_cirl:_2018,
+	title = {{CIRL}: {Controllable} {Imitative} {Reinforcement} {Learning} for {Vision}-based {Self}-driving},
+	shorttitle = {{CIRL}},
+	url = {http://arxiv.org/abs/1807.03776},
+	abstract = {Autonomous urban driving navigation with complex multi-agent dynamics is under-explored due to the difficulty of learning an optimal driving policy. The traditional modular pipeline heavily relies on hand-designed rules and the pre-processing perception system while the supervised learning-based models are limited by the accessibility of extensive human experience. We present a general and principled Controllable Imitative Reinforcement Learning (CIRL) approach which successfully makes the driving agent achieve higher success rates based on only vision inputs in a high-fidelity car simulator. To alleviate the low exploration efficiency for large continuous action space that often prohibits the use of classical RL on challenging real tasks, our CIRL explores over a reasonably constrained action space guided by encoded experiences that imitate human demonstrations, building upon Deep Deterministic Policy Gradient (DDPG). Moreover, we propose to specialize adaptive policies and steering-angle reward designs for different control signals (i.e. follow, straight, turn right, turn left) based on the shared representations to improve the model capability in tackling with diverse cases. Extensive experiments on CARLA driving benchmark demonstrate that CIRL substantially outperforms all previous methods in terms of the percentage of successfully completed episodes on a variety of goal-directed driving tasks. We also show its superior generalization capability in unseen environments. To our knowledge, this is the first successful case of the learned driving policy through reinforcement learning in the high-fidelity simulator, which performs better-than supervised imitation learning.},
+	urldate = {2018-11-13},
+	journal = {arXiv:1807.03776 [cs]},
+	author = {Liang, Xiaodan and Wang, Tairui and Yang, Luona and Xing, Eric},
+	month = jul,
+	year = {2018},
+	note = {arXiv: 1807.03776},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics},
+	file = {arXiv\:1807.03776 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\7M4JJCAZ\\Liang et al. - 2018 - CIRL Controllable Imitative Reinforcement Learnin.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\EMZN35PW\\1807.html:text/html}
+}
+
+@article{xia_predicting_2017,
+	title = {Predicting {Driver} {Attention} in {Critical} {Situations}},
+	url = {http://arxiv.org/abs/1711.06406},
+	abstract = {Robust driver attention prediction for critical situations is a challenging computer vision problem, yet essential for autonomous driving. Because critical driving moments are so rare, collecting enough data for these situations is difficult with the conventional in-car data collection protocol---tracking eye movements during driving. Here, we first propose a new in-lab driver attention collection protocol and introduce a new driver attention dataset built upon braking event videos selected from a large-scale, crowd-sourced driving video dataset. We further propose Human Weighted Sampling (HWS) method, which uses human gaze behavior to identify crucial frames of a driving dataset and weights them heavily during model training. With our dataset and HWS, we built a driver attention prediction model that outperforms the state-of-the-art and demonstrates sophisticated behaviors, like attending to crossing pedestrians but not giving false alarms to pedestrians safely walking on the sidewalk. Its prediction results are nearly indistinguishable from ground-truth to humans. Although only being trained with our in-lab attention data, the model also predicts in-car driver attention data of routine driving with state-of-the-art accuracy. This result not only demonstrates the performance of our model but also proves the validity and usefulness of our dataset and data collection protocol.},
+	urldate = {2018-11-13},
+	journal = {arXiv:1711.06406 [cs]},
+	author = {Xia, Ye and Zhang, Danqing and Kim, Jinkyu and Nakayama, Ken and Zipser, Karl and Whitney, David},
+	month = nov,
+	year = {2017},
+	note = {arXiv: 1711.06406},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1711.06406 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\TAD47NRY\\Xia et al. - 2017 - Predicting Driver Attention in Critical Situations.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\DIBD3H4K\\1711.html:text/html}
+}
+
+@article{yang_end--end_2018,
+	title = {End-to-end {Multi}-{Modal} {Multi}-{Task} {Vehicle} {Control} for {Self}-{Driving} {Cars} with {Visual} {Perception}},
+	url = {http://arxiv.org/abs/1801.06734},
+	abstract = {Convolutional Neural Networks (CNN) have been successfully applied to autonomous driving tasks, many in an end-to-end manner. Previous end-to-end steering control methods take an image or an image sequence as the input and directly predict the steering angle with CNN. Although single task learning on steering angles has reported good performances, the steering angle alone is not sufficient for vehicle control. In this work, we propose a multi-task learning framework to predict the steering angle and speed control simultaneously in an end-to-end manner. Since it is nontrivial to predict accurate speed values with only visual inputs, we first propose a network to predict discrete speed commands and steering angles with image sequences. Moreover, we propose a multi-modal multi-task network to predict speed values and steering angles by taking previous feedback speeds and visual recordings as inputs. Experiments are conducted on the public Udacity dataset and a newly collected SAIC dataset. Results show that the proposed model predicts steering angles and speed values accurately. Furthermore, we improve the failure data synthesis methods to solve the problem of error accumulation in real road tests.},
+	urldate = {2018-11-13},
+	journal = {arXiv:1801.06734 [cs]},
+	author = {Yang, Zhengyuan and Zhang, Yixuan and Yu, Jerry and Cai, Junjie and Luo, Jiebo},
+	month = jan,
+	year = {2018},
+	note = {arXiv: 1801.06734},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1801.06734 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\8B4RZ5UT\\Yang et al. - 2018 - End-to-end Multi-Modal Multi-Task Vehicle Control .pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\7V5D5YBK\\1801.html:text/html}
+}
+
+@article{zambaldi_relational_2018,
+	title = {Relational {Deep} {Reinforcement} {Learning}},
+	url = {http://arxiv.org/abs/1806.01830},
+	abstract = {We introduce an approach for deep reinforcement learning (RL) that improves upon the eﬃciency, generalization capacity, and interpretability of conventional approaches through structured perception and relational reasoning. It uses self-attention to iteratively reason about the relations between entities in a scene and to guide a model-free policy. Our results show that in a novel navigation and planning task called Box-World, our agent ﬁnds interpretable solutions that improve upon baselines in terms of sample complexity, ability to generalize to more complex scenes than experienced during training, and overall performance. In the StarCraft II Learning Environment, our agent achieves state-of-the-art performance on six mini-games – surpassing human grandmaster performance on four. By considering architectural inductive biases, our work opens new directions for overcoming important, but stubborn, challenges in deep RL.},
+	language = {en},
+	urldate = {2018-11-13},
+	journal = {arXiv:1806.01830 [cs, stat]},
+	author = {Zambaldi, Vinicius and Raposo, David and Santoro, Adam and Bapst, Victor and Li, Yujia and Babuschkin, Igor and Tuyls, Karl and Reichert, David and Lillicrap, Timothy and Lockhart, Edward and Shanahan, Murray and Langston, Victoria and Pascanu, Razvan and Botvinick, Matthew and Vinyals, Oriol and Battaglia, Peter},
+	month = jun,
+	year = {2018},
+	note = {arXiv: 1806.01830},
+	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning},
+	file = {Zambaldi et al. - 2018 - Relational Deep Reinforcement Learning.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\TDUX6Y82\\Zambaldi et al. - 2018 - Relational Deep Reinforcement Learning.pdf:application/pdf}
+}
+
+@article{santoro_relational_2018,
+	title = {Relational recurrent neural networks},
+	url = {http://arxiv.org/abs/1806.01822},
+	abstract = {Memory-based neural networks model temporal data by leveraging an ability to remember information for long periods. It is unclear, however, whether they also have an ability to perform complex relational reasoning with the information they remember. Here, we ﬁrst conﬁrm our intuitions that standard memory architectures may struggle at tasks that heavily involve an understanding of the ways in which entities are connected – i.e., tasks involving relational reasoning. We then improve upon these deﬁcits by using a new memory module – a Relational Memory Core (RMC) – which employs multi-head dot product attention to allow memories to interact. Finally, we test the RMC on a suite of tasks that may proﬁt from more capable relational reasoning across sequential information, and show large gains in RL domains (e.g. Mini PacMan), program evaluation, and language modeling, achieving state-of-the-art results on the WikiText-103, Project Gutenberg, and GigaWord datasets.},
+	language = {en},
+	urldate = {2018-11-13},
+	journal = {arXiv:1806.01822 [cs, stat]},
+	author = {Santoro, Adam and Faulkner, Ryan and Raposo, David and Rae, Jack and Chrzanowski, Mike and Weber, Theophane and Wierstra, Daan and Vinyals, Oriol and Pascanu, Razvan and Lillicrap, Timothy},
+	month = jun,
+	year = {2018},
+	note = {arXiv: 1806.01822},
+	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning},
+	file = {Santoro et al. - 2018 - Relational recurrent neural networks.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\U3RPI8WE\\Santoro et al. - 2018 - Relational recurrent neural networks.pdf:application/pdf}
+}
+
+@article{gulcehre_hyperbolic_2018,
+	title = {Hyperbolic {Attention} {Networks}},
+	url = {http://arxiv.org/abs/1805.09786},
+	abstract = {We introduce hyperbolic attention networks to endow neural networks with enough capacity to match the complexity of data with hierarchical and power-law structure. A few recent approaches have successfully demonstrated the beneﬁts of imposing hyperbolic geometry on the parameters of shallow networks. We extend this line of work by imposing hyperbolic geometry on the activations of neural networks. This allows us to exploit hyperbolic geometry to reason about embeddings produced by deep networks. We achieve this by re-expressing the ubiquitous mechanism of soft attention in terms of operations deﬁned for hyperboloid and Klein models. Our method shows improvements in terms of generalization on neural machine translation, learning on graphs and visual question answering tasks while keeping the neural representations compact.},
+	language = {en},
+	urldate = {2018-11-13},
+	journal = {arXiv:1805.09786 [cs]},
+	author = {Gulcehre, Caglar and Denil, Misha and Malinowski, Mateusz and Razavi, Ali and Pascanu, Razvan and Hermann, Karl Moritz and Battaglia, Peter and Bapst, Victor and Raposo, David and Santoro, Adam and de Freitas, Nando},
+	month = may,
+	year = {2018},
+	note = {arXiv: 1805.09786},
+	keywords = {Computer Science - Neural and Evolutionary Computing},
+	file = {Gulcehre et al. - 2018 - Hyperbolic Attention Networks.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\UM7DDCBF\\Gulcehre et al. - 2018 - Hyperbolic Attention Networks.pdf:application/pdf}
+}
+
+@article{xu_end--end_2016,
+	title = {End-to-end {Learning} of {Driving} {Models} from {Large}-scale {Video} {Datasets}},
+	url = {http://arxiv.org/abs/1612.01079},
+	abstract = {Robust perception-action models should be learned from training data with diverse visual appearances and realistic behaviors, yet current approaches to deep visuomotor policy learning have been generally limited to in-situ models learned from a single vehicle or a simulation environment. We advocate learning a generic vehicle motion model from large scale crowd-sourced video data, and develop an end-to-end trainable architecture for learning to predict a distribution over future vehicle egomotion from instantaneous monocular camera observations and previous vehicle state. Our model incorporates a novel FCN-LSTM architecture, which can be learned from large-scale crowd-sourced vehicle action data, and leverages available scene segmentation side tasks to improve performance under a privileged learning paradigm.},
+	urldate = {2018-11-13},
+	journal = {arXiv:1612.01079 [cs]},
+	author = {Xu, Huazhe and Gao, Yang and Yu, Fisher and Darrell, Trevor},
+	month = dec,
+	year = {2016},
+	note = {arXiv: 1612.01079},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1612.01079 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\77TP5C52\\Xu et al. - 2016 - End-to-end Learning of Driving Models from Large-s.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\B92L4NX4\\1612.html:text/html}
+}
+
+@inproceedings{fernando_going_2017,
+	title = {Going {Deeper}: {Autonomous} {Steering} with {Neural} {Memory} {Networks}},
+	shorttitle = {Going {Deeper}},
+	doi = {10.1109/ICCVW.2017.34},
+	abstract = {Although autonomous driving is an area which has been extensively explored in computer vision, current deep learning based methods such as direct image to action mapping approaches are not able to generate accurate results, making their application questionable. This is largely due to the lack of capacity of the current state-of-the-art architectures to capture long term dependencies which can model different human preferences and their behaviour under different contexts. Our work explores a new paradigm in deep autonomous driving where the model incorporates both visual input as well as the steering wheel trajectory and attains a long term planning capacity via neural memory networks. Furthermore, this work investigates optimal feature fusion techniques to combine these multimodal information sources, without discarding the vital information that they offer. The effectiveness of the proposed architecture is illustrated using two publicly available datasets where in both cases the proposed model demonstrates human like behaviour under challenging situations including illumination variations, discontinuous shoulder lines, lane merges, and divided highways, outperforming the current state-of-the-art.},
+	booktitle = {2017 {IEEE} {International} {Conference} on {Computer} {Vision} {Workshops} ({ICCVW})},
+	author = {Fernando, T. and Denman, S. and Sridharan, S. and Fookes, C.},
+	month = oct,
+	year = {2017},
+	keywords = {Autonomous vehicles, Trajectory, Planning, computer vision, neural nets, Neural networks, feature extraction, Visualization, deep learning, learning (artificial intelligence), sensor fusion, action mapping, autonomous steering, data fusion, deep autonomous driving, human preferences, intelligent transportation systems, Memory architecture, multimodal information sources, neural memory networks, optimal feature fusion, steering wheel trajectory, visual input},
+	pages = {214--221},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\MBB3KTJU\\authors.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\SRRTTJDP\\Fernando et al. - 2017 - Going Deeper Autonomous Steering with Neural Memo.pdf:application/pdf}
+}
+
+@article{mnih_recurrent_2014-1,
+	title = {Recurrent {Models} of {Visual} {Attention}},
+	url = {http://arxiv.org/abs/1406.6247},
+	abstract = {Applying convolutional neural networks to large images is computationally expensive because the amount of computation scales linearly with the number of image pixels. We present a novel recurrent neural network model that is capable of extracting information from an image or video by adaptively selecting a sequence of regions or locations and only processing the selected regions at high resolution. Like convolutional neural networks, the proposed model has a degree of translation invariance built-in, but the amount of computation it performs can be controlled independently of the input image size. While the model is non-differentiable, it can be trained using reinforcement learning methods to learn task-specific policies. We evaluate our model on several image classification tasks, where it significantly outperforms a convolutional neural network baseline on cluttered images, and on a dynamic visual control problem, where it learns to track a simple object without an explicit training signal for doing so.},
+	urldate = {2018-11-13},
+	journal = {arXiv:1406.6247 [cs, stat]},
+	author = {Mnih, Volodymyr and Heess, Nicolas and Graves, Alex and Kavukcuoglu, Koray},
+	month = jun,
+	year = {2014},
+	note = {arXiv: 1406.6247},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Statistics - Machine Learning, Computer Science - Machine Learning},
+	file = {arXiv\:1406.6247 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\HTAMZPK4\\Mnih et al. - 2014 - Recurrent Models of Visual Attention.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\5ZIMM83C\\1406.html:text/html}
+}
+
+@article{wang_look_2018,
+	title = {Look {Before} {You} {Leap}: {Bridging} {Model}-{Free} and {Model}-{Based} {Reinforcement} {Learning} for {Planned}-{Ahead} {Vision}-and-{Language} {Navigation}},
+	shorttitle = {Look {Before} {You} {Leap}},
+	url = {http://arxiv.org/abs/1803.07729},
+	abstract = {Existing research studies on vision and language grounding for robot navigation focus on improving model-free deep reinforcement learning (DRL) models in synthetic environments. However, model-free DRL models do not consider the dynamics in the real-world environments, and they often fail to generalize to new scenes. In this paper, we take a radical approach to bridge the gap between synthetic studies and real-world practices---We propose a novel, planned-ahead hybrid reinforcement learning model that combines model-free and model-based reinforcement learning to solve a real-world vision-language navigation task. Our look-ahead module tightly integrates a look-ahead policy model with an environment model that predicts the next state and the reward. Experimental results suggest that our proposed method significantly outperforms the baselines and achieves the best on the real-world Room-to-Room dataset. Moreover, our scalable method is more generalizable when transferring to unseen environments.},
+	urldate = {2018-11-13},
+	journal = {arXiv:1803.07729 [cs]},
+	author = {Wang, Xin and Xiong, Wenhan and Wang, Hongmin and Wang, William Yang},
+	month = mar,
+	year = {2018},
+	note = {arXiv: 1803.07729},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics, Computer Science - Artificial Intelligence, Computer Science - Computation and Language},
+	file = {arXiv\:1803.07729 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\SLY35L9Z\\Wang et al. - 2018 - Look Before You Leap Bridging Model-Free and Mode.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\SE99PPIH\\1803.html:text/html}
+}
+
+@article{bahdanau_neural_2014,
+	title = {Neural {Machine} {Translation} by {Jointly} {Learning} to {Align} and {Translate}},
+	url = {http://arxiv.org/abs/1409.0473},
+	abstract = {Neural machine translation is a recently proposed approach to machine translation. Unlike the traditional statistical machine translation, the neural machine translation aims at building a single neural network that can be jointly tuned to maximize the translation performance. The models proposed recently for neural machine translation often belong to a family of encoder-decoders and consists of an encoder that encodes a source sentence into a fixed-length vector from which a decoder generates a translation. In this paper, we conjecture that the use of a fixed-length vector is a bottleneck in improving the performance of this basic encoder-decoder architecture, and propose to extend this by allowing a model to automatically (soft-)search for parts of a source sentence that are relevant to predicting a target word, without having to form these parts as a hard segment explicitly. With this new approach, we achieve a translation performance comparable to the existing state-of-the-art phrase-based system on the task of English-to-French translation. Furthermore, qualitative analysis reveals that the (soft-)alignments found by the model agree well with our intuition.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1409.0473 [cs, stat]},
+	author = {Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+	month = sep,
+	year = {2014},
+	note = {arXiv: 1409.0473},
+	keywords = {Computer Science - Neural and Evolutionary Computing, Statistics - Machine Learning, Computer Science - Machine Learning, Computer Science - Computation and Language},
+	file = {arXiv\:1409.0473 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\VNE24R5K\\Bahdanau et al. - 2014 - Neural Machine Translation by Jointly Learning to .pdf:application/pdf}
+}
+
+@inproceedings{yang_stacked_2016,
+	title = {Stacked {Attention} {Networks} for {Image} {Question} {Answering}},
+	url = {https://www.cv-foundation.org/openaccess/content_cvpr_2016/html/Yang_Stacked_Attention_Networks_CVPR_2016_paper.html},
+	urldate = {2018-11-14},
+	author = {Yang, Zichao and He, Xiaodong and Gao, Jianfeng and Deng, Li and Smola, Alex},
+	year = {2016},
+	pages = {21--29},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\KPVBUQGT\\Yang et al. - 2016 - Stacked Attention Networks for Image Question Answ.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\UMG7JNR3\\Yang_Stacked_Attention_Networks_CVPR_2016_paper.html:text/html}
+}
+
+@article{kim_structured_2017,
+	title = {Structured {Attention} {Networks}},
+	url = {http://arxiv.org/abs/1702.00887},
+	abstract = {Attention networks have proven to be an effective approach for embedding categorical inference within a deep neural network. However, for many tasks we may want to model richer structural dependencies without abandoning end-to-end training. In this work, we experiment with incorporating richer structural distributions, encoded using graphical models, within deep networks. We show that these structured attention networks are simple extensions of the basic attention procedure, and that they allow for extending attention beyond the standard soft-selection approach, such as attending to partial segmentations or to subtrees. We experiment with two different classes of structured attention networks: a linear-chain conditional random field and a graph-based parsing model, and describe how these models can be practically implemented as neural network layers. Experiments show that this approach is effective for incorporating structural biases, and structured attention networks outperform baseline attention models on a variety of synthetic and real tasks: tree transduction, neural machine translation, question answering, and natural language inference. We further find that models trained in this way learn interesting unsupervised hidden representations that generalize simple attention.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1702.00887 [cs]},
+	author = {Kim, Yoon and Denton, Carl and Hoang, Luong and Rush, Alexander M.},
+	month = feb,
+	year = {2017},
+	note = {arXiv: 1702.00887},
+	keywords = {Computer Science - Neural and Evolutionary Computing, Computer Science - Machine Learning, Computer Science - Computation and Language},
+	file = {arXiv\:1702.00887 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\EP8JAHK9\\Kim et al. - 2017 - Structured Attention Networks.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\KVGCWMQI\\1702.html:text/html}
+}
+
+@article{petersen_attention_2012,
+	title = {The {Attention} {System} of the {Human} {Brain}: 20 {Years} {After}},
+	volume = {35},
+	issn = {0147-006X},
+	shorttitle = {The {Attention} {System} of the {Human} {Brain}},
+	url = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3413263/},
+	doi = {10.1146/annurev-neuro-062111-150525},
+	abstract = {Here, we update our 1990 Annual Review of Neuroscience article, “The Attention System of the Human Brain.” The framework presented in the original article has helped to integrate behavioral, systems, cellular, and molecular approaches to common problems in attention research. Our framework has been both elaborated and expanded in subsequent years. Research on orienting and executive functions has supported the addition of new networks of brain regions. Developmental studies have shown important changes in control systems between infancy and childhood. In some cases, evidence has supported the role of specific genetic variations, often in conjunction with experience, that account for some of the individual differences in the efficiency of attentional networks. The findings have led to increased understanding of aspects of pathology and to some new interventions.},
+	urldate = {2018-11-14},
+	journal = {Annual review of neuroscience},
+	author = {Petersen, Steven E. and Posner, Michael I.},
+	month = jul,
+	year = {2012},
+	pmid = {22524787},
+	pmcid = {PMC3413263},
+	pages = {73--89},
+	file = {PubMed Central Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\XQGJ5M6N\\Petersen and Posner - 2012 - The Attention System of the Human Brain 20 Years .pdf:application/pdf}
+}
+
+@article{posner_attention_1990,
+	title = {The {Attention} {System} of the {Human} {Brain}},
+	volume = {13},
+	issn = {0147-006X},
+	url = {https://www.annualreviews.org/doi/10.1146/annurev.ne.13.030190.000325},
+	doi = {10.1146/annurev.ne.13.030190.000325},
+	number = {1},
+	urldate = {2018-11-14},
+	journal = {Annual Review of Neuroscience},
+	author = {Posner, Michael I. and Petersen, Steven E.},
+	month = mar,
+	year = {1990},
+	pages = {25--42},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\8LPXBS5D\\Posner and Petersen - 1990 - The Attention System of the Human Brain.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\T5HGVPJ8\\annurev.ne.13.030190.html:text/html}
+}
+
+@article{kim_interpretable_2017,
+	title = {Interpretable {Learning} for {Self}-{Driving} {Cars} by {Visualizing} {Causal} {Attention}},
+	url = {http://arxiv.org/abs/1703.10631},
+	abstract = {Deep neural perception and control networks are likely to be a key component of self-driving vehicles. These models need to be explainable - they should provide easy-to-interpret rationales for their behavior - so that passengers, insurance companies, law enforcement, developers etc., can understand what triggered a particular behavior. Here we explore the use of visual explanations. These explanations take the form of real-time highlighted regions of an image that causally influence the network's output (steering control). Our approach is two-stage. In the first stage, we use a visual attention model to train a convolution network end-to-end from images to steering angle. The attention model highlights image regions that potentially influence the network's output. Some of these are true influences, but some are spurious. We then apply a causal filtering step to determine which input regions actually influence the output. This produces more succinct visual explanations and more accurately exposes the network's behavior. We demonstrate the effectiveness of our model on three datasets totaling 16 hours of driving. We first show that training with attention does not degrade the performance of the end-to-end network. Then we show that the network causally cues on a variety of features that are used by humans while driving.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1703.10631 [cs]},
+	author = {Kim, Jinkyu and Canny, John},
+	month = mar,
+	year = {2017},
+	note = {arXiv: 1703.10631},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning},
+	file = {arXiv\:1703.10631 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\ALDSK2RM\\Kim and Canny - 2017 - Interpretable Learning for Self-Driving Cars by Vi.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\CEZALB2G\\1703.html:text/html}
+}
+
+@article{chen_brain_2017,
+	title = {Brain {Inspired} {Cognitive} {Model} with {Attention} for {Self}-{Driving} {Cars}},
+	url = {http://arxiv.org/abs/1702.05596},
+	abstract = {Perception-driven approach and end-to-end system are two major vision-based frameworks for self-driving cars. However, it is difficult to introduce attention and historical information of autonomous driving process, which are the essential factors for achieving human-like driving into these two methods. In this paper, we propose a novel model for self-driving cars named brain-inspired cognitive model with attention (CMA). This model consists of three parts: a convolutional neural network for simulating human visual cortex, a cognitive map built to describe relationships between objects in complex traffic scene and a recurrent neural network that combines with the real-time updated cognitive map to implement attention mechanism and long-short term memory. The benefit of our model is that can accurately solve three tasks simultaneously:1) detection of the free space and boundaries of the current and adjacent lanes. 2)estimation of obstacle distance and vehicle attitude, and 3) learning of driving behavior and decision making from human driver. More significantly, the proposed model could accept external navigating instructions during an end-to-end driving process. For evaluation, we build a large-scale road-vehicle dataset which contains more than forty thousand labeled road images captured by three cameras on our self-driving car. Moreover, human driving activities and vehicle states are recorded in the meanwhile.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1702.05596 [cs]},
+	author = {Chen, Shitao and Zhang, Songyi and Shang, Jinghao and Chen, Badong and Zheng, Nanning},
+	month = feb,
+	year = {2017},
+	note = {arXiv: 1702.05596},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics},
+	file = {arXiv\:1702.05596 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\PEQRJ9ZV\\Chen et al. - 2017 - Brain Inspired Cognitive Model with Attention for .pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\6MPRPVPK\\1702.html:text/html}
+}
+
+@article{hecker_failure_2018,
+	title = {Failure {Prediction} for {Autonomous} {Driving}},
+	url = {http://arxiv.org/abs/1805.01811},
+	abstract = {The primary focus of autonomous driving research is to improve driving accuracy. While great progress has been made, state-of-the-art algorithms still fail at times. Such failures may have catastrophic consequences. It therefore is important that automated cars foresee problems ahead as early as possible. This is also of paramount importance if the driver will be asked to take over. We conjecture that failures do not occur randomly. For instance, driving models may fail more likely at places with heavy traffic, at complex intersections, and/or under adverse weather/illumination conditions. This work presents a method to learn to predict the occurrence of these failures, i.e. to assess how difficult a scene is to a given driving model and to possibly give the human driver an early headsup. A camera-based driving model is developed and trained over real driving datasets. The discrepancies between the model's predictions and the human `ground-truth' maneuvers were then recorded, to yield the `failure' scores. Experimental results show that the failure score can indeed be learned and predicted. Thus, our prediction method is able to improve the overall safety of an automated driving model by alerting the human driver timely, leading to better human-vehicle collaborative driving.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1805.01811 [cs]},
+	author = {Hecker, Simon and Dai, Dengxin and Van Gool, Luc},
+	month = may,
+	year = {2018},
+	note = {arXiv: 1805.01811},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1805.01811 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\BR27B7ZL\\Hecker et al. - 2018 - Failure Prediction for Autonomous Driving.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\E26I5YVK\\1805.html:text/html}
+}
+
+@article{santoro_simple_2017,
+	title = {A simple neural network module for relational reasoning},
+	url = {http://arxiv.org/abs/1706.01427},
+	abstract = {Relational reasoning is a central component of generally intelligent behavior, but has proven difficult for neural networks to learn. In this paper we describe how to use Relation Networks (RNs) as a simple plug-and-play module to solve problems that fundamentally hinge on relational reasoning. We tested RN-augmented networks on three tasks: visual question answering using a challenging dataset called CLEVR, on which we achieve state-of-the-art, super-human performance; text-based question answering using the bAbI suite of tasks; and complex reasoning about dynamic physical systems. Then, using a curated dataset called Sort-of-CLEVR we show that powerful convolutional networks do not have a general capacity to solve relational questions, but can gain this capacity when augmented with RNs. Our work shows how a deep learning architecture equipped with an RN module can implicitly discover and learn to reason about entities and their relations.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1706.01427 [cs]},
+	author = {Santoro, Adam and Raposo, David and Barrett, David G. T. and Malinowski, Mateusz and Pascanu, Razvan and Battaglia, Peter and Lillicrap, Timothy},
+	month = jun,
+	year = {2017},
+	note = {arXiv: 1706.01427},
+	keywords = {Computer Science - Machine Learning, Computer Science - Computation and Language},
+	file = {arXiv\:1706.01427 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\YQR2FSRC\\Santoro et al. - 2017 - A simple neural network module for relational reas.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\IU63RUHE\\1706.html:text/html}
+}
+
+@article{battaglia_interaction_2016,
+	title = {Interaction {Networks} for {Learning} about {Objects}, {Relations} and {Physics}},
+	url = {https://arxiv.org/abs/1612.00222},
+	language = {en},
+	urldate = {2018-11-14},
+	author = {Battaglia, Peter W. and Pascanu, Razvan and Lai, Matthew and Rezende, Danilo and Kavukcuoglu, Koray},
+	month = dec,
+	year = {2016},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\8PTAQWIS\\Battaglia et al. - 2016 - Interaction Networks for Learning about Objects, R.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\FE7U7RTU\\1612.html:text/html}
+}
+
+@inproceedings{wang_learning_2017,
+	title = {Learning {Object} {Interactions} and {Descriptions} for {Semantic} {Image} {Segmentation}},
+	doi = {10.1109/CVPR.2017.556},
+	abstract = {Recent advanced deep convolutional networks (CNNs) achieved great successes in many computer vision tasks, because of their compelling learning complexity and the presences of large-scale labeled data. However, as obtaining per-pixel annotations is expensive, performances of CNNs in semantic image segmentation are not fully exploited. This work significantly increases segmentation accuracy of CNNs by learning from an Image Descriptions in the Wild (IDW) dataset. Unlike previous image captioning datasets, where captions were manually and densely annotated, images and their descriptions in IDW are automatically downloaded from Internet without any manual cleaning and refinement. An IDW-CNN is proposed to jointly train IDW and existing image segmentation dataset such as Pascal VOC 2012 (VOC). It has two appealing properties. First, knowledge from different datasets can be fully explored and transferred from each other to improve performance. Second, segmentation accuracy in VOC can be constantly increased when selecting more data from IDW. Extensive experiments demonstrate the effectiveness and scalability of IDW-CNN, which outperforms existing best-performing system by 12\% on VOC12 test set.},
+	booktitle = {2017 {IEEE} {Conference} on {Computer} {Vision} and {Pattern} {Recognition} ({CVPR})},
+	author = {Wang, G. and Luo, P. and Lin, L. and Wang, X.},
+	month = jul,
+	year = {2017},
+	keywords = {computer vision, neural nets, Training, learning (artificial intelligence), Semantics, Image segmentation, Cleaning, advanced deep convolutional networks, CNNs, computer vision tasks, Cows, Feature extraction, IDW-CNN, Image Descriptions in the Wild, image segmentation, large-scale labeled data, learning complexity, object interactions, per-pixel annotations, semantic image segmentation, Streaming media, VOC},
+	pages = {5235--5243},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\PSLQIYGL\\8100039.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\X9HJNSL8\\Wang et al. - 2017 - Learning Object Interactions and Descriptions for .pdf:application/pdf}
+}
+
+@article{chao_learning_2017,
+	title = {Learning to {Detect} {Human}-{Object} {Interactions}},
+	url = {http://arxiv.org/abs/1702.05448},
+	abstract = {We study the problem of detecting human-object interactions (HOI) in static images, defined as predicting a human and an object bounding box with an interaction class label that connects them. HOI detection is a fundamental problem in computer vision as it provides semantic information about the interactions among the detected objects. We introduce HICO-DET, a new large benchmark for HOI detection, by augmenting the current HICO classification benchmark with instance annotations. To solve the task, we propose Human-Object Region-based Convolutional Neural Networks (HO-RCNN). At the core of our HO-RCNN is the Interaction Pattern, a novel DNN input that characterizes the spatial relations between two bounding boxes. Experiments on HICO-DET demonstrate that our HO-RCNN, by exploiting human-object spatial relations through Interaction Patterns, significantly improves the performance of HOI detection over baseline approaches.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1702.05448 [cs]},
+	author = {Chao, Yu-Wei and Liu, Yunfan and Liu, Xieyang and Zeng, Huayi and Deng, Jia},
+	month = feb,
+	year = {2017},
+	note = {arXiv: 1702.05448},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1702.05448 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\YKCFVUPG\\Chao et al. - 2017 - Learning to Detect Human-Object Interactions.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\SI9QXVXT\\1702.html:text/html}
+}
+
+@inproceedings{yao_grouplet:_2010,
+	title = {Grouplet: {A} structured image representation for recognizing human and object interactions},
+	shorttitle = {Grouplet},
+	doi = {10.1109/CVPR.2010.5540234},
+	abstract = {Psychologists have proposed that many human-object interaction activities form unique classes of scenes. Recognizing these scenes is important for many social functions. To enable a computer to do this is however a challenging task. Take people-playing-musical-instrument (PPMI) as an example; to distinguish a person playing violin from a person just holding a violin requires subtle distinction of characteristic image features and feature arrangements that differentiate these two scenes. Most of the existing image representation methods are either too coarse (e.g. BoW) or too sparse (e.g. constellation models) for performing this task. In this paper, we propose a new image feature representation called “grouplet”. The grouplet captures the structured information of an image by encoding a number of discriminative visual features and their spatial configurations. Using a dataset of 7 different PPMI activities, we show that grouplets are more effective in classifying and detecting human-object interactions than other state-of-the-art methods. In particular, our method can make a robust distinction between humans playing the instruments and humans co-occurring with the instruments without playing.},
+	booktitle = {2010 {IEEE} {Computer} {Society} {Conference} on {Computer} {Vision} and {Pattern} {Recognition}},
+	author = {Yao, B. and Fei-Fei, L.},
+	month = jun,
+	year = {2010},
+	keywords = {Computer science, feature extraction, Layout, object recognition, Robustness, Humans, Object detection, object interactions, human object interaction, human recognition, Image coding, image recognition, Image recognition, image representation, Image representation, image representation methods, Instruments, people-playing-musical-instrument, PPMI, Psychology, social functions},
+	pages = {9--16},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\MGGTELFC\\5540234.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\6ZD2GTV4\\Yao and Fei-Fei - 2010 - Grouplet A structured image representation for re.pdf:application/pdf}
+}
+
+@inproceedings{yao_modeling_2010,
+	title = {Modeling mutual context of object and human pose in human-object interaction activities},
+	doi = {10.1109/CVPR.2010.5540235},
+	abstract = {Detecting objects in cluttered scenes and estimating articulated human body parts are two challenging problems in computer vision. The difficulty is particularly pronounced in activities involving human-object interactions (e.g. playing tennis), where the relevant object tends to be small or only partially visible, and the human body parts are often self-occluded. We observe, however, that objects and human poses can serve as mutual context to each other - recognizing one facilitates the recognition of the other. In this paper we propose a new random field model to encode the mutual context of objects and human poses in human-object interaction activities. We then cast the model learning task as a structure learning problem, of which the structural connectivity between the object, the overall human pose, and different body parts are estimated through a structure search approach, and the parameters of the model are estimated by a new max-margin algorithm. On a sports data set of six classes of human-object interactions, we show that our mutual context model significantly outperforms state-of-the-art in detecting very difficult objects and human poses.},
+	booktitle = {2010 {IEEE} {Computer} {Society} {Conference} on {Computer} {Vision} and {Pattern} {Recognition}},
+	author = {Yao, B. and Fei-Fei, L.},
+	month = jun,
+	year = {2010},
+	keywords = {optimisation, computer vision, pose estimation, learning (artificial intelligence), Humans, object detection, Context modeling, human pose, human-object interaction activity, max-margin algorithm, model learning task, random field model, random processes, structure learning problem, structure search approach},
+	pages = {17--24},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\3H3Y8ZII\\5540235.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\3V5ZBI6B\\Yao and Fei-Fei - 2010 - Modeling mutual context of object and human pose i.pdf:application/pdf}
+}
+
+@article{prest_weakly_2012,
+	title = {Weakly {Supervised} {Learning} of {Interactions} between {Humans} and {Objects}},
+	volume = {34},
+	issn = {0162-8828},
+	doi = {10.1109/TPAMI.2011.158},
+	abstract = {We introduce a weakly supervised approach for learning human actions modeled as interactions between humans and objects. Our approach is human-centric: We first localize a human in the image and then determine the object relevant for the action and its spatial relation with the human. The model is learned automatically from a set of still images annotated only with the action label. Our approach relies on a human detector to initialize the model learning. For robustness to various degrees of visibility, we build a detector that learns to combine a set of existing part detectors. Starting from humans detected in a set of images depicting the action, our approach determines the action object and its spatial relation to the human. Its final output is a probabilistic model of the human-object interaction, i.e., the spatial relation between the human and the object. We present an extensive experimental evaluation on the sports action data set from [1], the PASCAL Action 2010 data set [2], and a new human-object interaction data set.},
+	number = {3},
+	journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+	author = {Prest, A. and Schmid, C. and Ferrari, V.},
+	month = mar,
+	year = {2012},
+	keywords = {Computational modeling, Training, probability, learning (artificial intelligence), Detectors, Face, Humans, Pattern Recognition, Automated, object detection, Algorithms, Context modeling, action recognition, Action recognition, Artificial Intelligence, gesture recognition, human-object interaction, Image Interpretation, Computer-Assisted, model learning, Models, Statistical, object detection., probabilistic model, still images, Support vector machines, weakly supervised learning},
+	pages = {601--614},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\GDYVQPFI\\5975168.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\J557CF35\\Prest et al. - 2012 - Weakly Supervised Learning of Interactions between.pdf:application/pdf}
+}
+
+@article{stergiou_understanding_2018,
+	title = {Understanding human-human interactions: a survey},
+	shorttitle = {Understanding human-human interactions},
+	url = {http://arxiv.org/abs/1808.00022},
+	abstract = {Many videos depict people, and it is their interactions that inform us of their activities, relation to one another and the cultural and social setting. With advances in human action recognition, researchers have begun to address the automated recognition of these human-human interactions from video. The main challenges stem from dealing with the considerable variation in recording settings, the appearance of the people depicted and the performance of their interaction. This survey provides a summary of these challenges and datasets, followed by an in-depth discussion of relevant vision-based recognition and detection methods. We focus on recent, promising work based on convolutional neural networks (CNNs). Finally, we outline directions to overcome the limitations of the current state-of-the-art.},
+	urldate = {2018-11-14},
+	journal = {arXiv:1808.00022 [cs]},
+	author = {Stergiou, Alexandros and Poppe, Ronald},
+	month = jul,
+	year = {2018},
+	note = {arXiv: 1808.00022},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning},
+	file = {arXiv\:1808.00022 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\KYGXLD89\\Stergiou and Poppe - 2018 - Understanding human-human interactions a survey.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\ZZG7AXM6\\1808.html:text/html}
+}
+
+@article{sunderhauf_limits_2018,
+	title = {The {Limits} and {Potentials} of {Deep} {Learning} for {Robotics}},
+	url = {http://arxiv.org/abs/1804.06557},
+	abstract = {The application of deep learning in robotics leads to very speciﬁc problems and research questions that are typically not addressed by the computer vision and machine learning communities. In this paper we discuss a number of robotics-speciﬁc learning, reasoning, and embodiment challenges for deep learning. We explain the need for better evaluation metrics, highlight the importance and unique challenges for deep robotic learning in simulation, and explore the spectrum between purely data-driven and model-driven approaches. We hope this paper provides a motivating overview of important research directions to overcome the current limitations, and help fulﬁll the promising potentials of deep learning in robotics.},
+	language = {en},
+	urldate = {2018-11-15},
+	journal = {arXiv:1804.06557 [cs]},
+	author = {Sünderhauf, Niko and Brock, Oliver and Scheirer, Walter and Hadsell, Raia and Fox, Dieter and Leitner, Jürgen and Upcroft, Ben and Abbeel, Pieter and Burgard, Wolfram and Milford, Michael and Corke, Peter},
+	month = apr,
+	year = {2018},
+	note = {arXiv: 1804.06557},
+	keywords = {Computer Science - Robotics},
+	file = {Sünderhauf et al. - 2018 - The Limits and Potentials of Deep Learning for Rob.pdf:C\:\\Users\\Yuejiang\\Zotero\\storage\\TG46EVKN\\Sünderhauf et al. - 2018 - The Limits and Potentials of Deep Learning for Rob.pdf:application/pdf}
+}
+
+@incollection{urmson_autonomous_2009,
+	address = {Berlin, Heidelberg},
+	series = {Springer {Tracts} in {Advanced} {Robotics}},
+	title = {Autonomous {Driving} in {Urban} {Environments}: {Boss} and the {Urban} {Challenge}},
+	isbn = {978-3-642-03991-1},
+	shorttitle = {Autonomous {Driving} in {Urban} {Environments}},
+	url = {https://doi.org/10.1007/978-3-642-03991-1_1},
+	abstract = {Boss is an autonomous vehicle that uses on-board sensors (GPS, lasers, radars, and cameras) to track other vehicles, detect static obstacles and localize itself relative to a road model. A three-layer planning system combines mission, behavioral and motion planning to drive in urban environments. The mission planning layer considers which street to take to achieve a mission goal. The behavioral layer determines when to change lanes, precedence at intersections and performs error recovery maneuvers. The motion planning layer selects actions to avoid obstacles while making progress towards local goals.The system was developed from the ground up to address the requirements of the DARPA Urban Challenge using a spiral system development process with a heavy emphasis on regular, regressive system testing. During the National Qualification Event and the 85km Urban Challenge Final Event Boss demonstrated some of its capabilities, qualifying first and winning the challenge.},
+	language = {en},
+	urldate = {2018-11-15},
+	booktitle = {The {DARPA} {Urban} {Challenge}: {Autonomous} {Vehicles} in {City} {Traffic}},
+	publisher = {Springer Berlin Heidelberg},
+	author = {Urmson, Chris and Anhalt, Joshua and Bagnell, Drew and Baker, Christopher and Bittner, Robert and Clark, M. N. and Dolan, John and Duggins, Dave and Galatali, Tugrul and Geyer, Chris and Gittleman, Michele and Harbaugh, Sam and Hebert, Martial and Howard, Thomas M. and Kolski, Sascha and Kelly, Alonzo and Likhachev, Maxim and McNaughton, Matt and Miller, Nick and Peterson, Kevin and Pilnick, Brian and Rajkumar, Raj and Rybski, Paul and Salesky, Bryan and Seo, Young-Woo and Singh, Sanjiv and Snider, Jarrod and Stentz, Anthony and Whittaker, William “Red” and Wolkowicki, Ziv and Ziglar, Jason and Bae, Hong and Brown, Thomas and Demitrish, Daniel and Litkouhi, Bakhtiar and Nickolaou, Jim and Sadekar, Varsha and Zhang, Wende and Struble, Joshua and Taylor, Michael and Darms, Michael and Ferguson, Dave},
+	editor = {Buehler, Martin and Iagnemma, Karl and Singh, Sanjiv},
+	year = {2009},
+	doi = {10.1007/978-3-642-03991-1_1},
+	keywords = {Autonomous Vehicle, Defense Advance Research Project Agency, Error Recovery, Motion Planner, Stop Line},
+	pages = {1--59},
+	file = {Springer Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\UA822XZ3\\Urmson et al. - 2009 - Autonomous Driving in Urban Environments Boss and.pdf:application/pdf}
+}
+
+@inproceedings{levinson_towards_2011,
+	title = {Towards fully autonomous driving: {Systems} and algorithms},
+	shorttitle = {Towards fully autonomous driving},
+	doi = {10.1109/IVS.2011.5940562},
+	abstract = {In order to achieve autonomous operation of a vehicle in urban situations with unpredictable traffic, several realtime systems must interoperate, including environment perception, localization, planning, and control. In addition, a robust vehicle platform with appropriate sensors, computational hardware, networking, and software infrastructure is essential. We previously published an overview of Junior, Stanford's entry in the 2007 DARPA Urban Challenge. This race was a closed-course competition which, while historic and inciting much progress in the field, was not fully representative of the situations that exist in the real world. In this paper, we present a summary of our recent research towards the goal of enabling safe and robust autonomous operation in more realistic situations. First, a trio of unsupervised algorithms automatically calibrates our 64-beam rotating LIDAR with accuracy superior to tedious hand measurements. We then generate high-resolution maps of the environment which are subsequently used for online localization with centimeter accuracy. Improved perception and recognition algorithms now enable Junior to track and classify obstacles as cyclists, pedestrians, and vehicles; traffic lights are detected as well. A new planning system uses this incoming data to generate thousands of candidate trajectories per second, choosing the optimal path dynamically. The improved controller continuously selects throttle, brake, and steering actuations that maximize comfort and minimize trajectory error. All of these algorithms work in sun or rain and during the day or night. With these systems operating together, Junior has successfully logged hundreds of miles of autonomous operation in a variety of real-life conditions.},
+	booktitle = {2011 {IEEE} {Intelligent} {Vehicles} {Symposium} ({IV})},
+	author = {Levinson, J. and Askeland, J. and Becker, J. and Dolson, J. and Held, D. and Kammel, S. and Kolter, J. Z. and Langer, D. and Pink, O. and Pratt, V. and Sokolsky, M. and Stanek, G. and Stavens, D. and Teichman, A. and Werling, M. and Thrun, S.},
+	month = jun,
+	year = {2011},
+	keywords = {mobile robots, Vehicles, remotely operated vehicles, Trajectory, Planning, Vehicle dynamics, computer vision, Calibration, autonomous driving, closed-course competition, DARPA urban challenge, environment perception, Laser beams, LIDAR, obstacle classification, obstacle tracking, online localization, planning system, realtime system, recognition algorithm, robust autonomous operation, robust vehicle platform, Software, software infrastructure, unpredictable traffic},
+	pages = {163--168},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\G3S9ND7U\\authors.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\9TMV2D9F\\Levinson et al. - 2011 - Towards fully autonomous driving Systems and algo.pdf:application/pdf}
+}
+
+@inproceedings{li_towards_2009,
+	title = {Towards total scene understanding: {Classification}, annotation and segmentation in an automatic framework},
+	shorttitle = {Towards total scene understanding},
+	doi = {10.1109/CVPR.2009.5206718},
+	abstract = {Given an image, we propose a hierarchical generative model that classifies the overall scene, recognizes and segments each object component, as well as annotates the image with a list of tags. To our knowledge, this is the first model that performs all three tasks in one coherent framework. For instance, a scene of a `polo game' consists of several visual objects such as `human', `horse', `grass', etc. In addition, it can be further annotated with a list of more abstract (e.g. `dusk') or visually less salient (e.g. `saddle') tags. Our generative model jointly explains images through a visual model and a textual model. Visually relevant objects are represented by regions and patches, while visually irrelevant textual annotations are influenced directly by the overall scene class. We propose a fully automatic learning framework that is able to learn robust scene models from noisy Web data such as images and user tags from Flickr.com. We demonstrate the effectiveness of our framework by automatically classifying, annotating and segmenting images from eight classes depicting sport scenes. In all three tasks, our model significantly outperforms state-of-the-art algorithms.},
+	booktitle = {2009 {IEEE} {Conference} on {Computer} {Vision} and {Pattern} {Recognition}},
+	author = {Li, L. and Socher, R. and Fei-Fei, L.},
+	month = jun,
+	year = {2009},
+	keywords = {image classification, Layout, object recognition, image segmentation, automatic framework, image annotation, object component recognition, polo game, sport scene, textual model, total scene understanding, visual model, visual object},
+	pages = {2036--2043},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\4YR2JGQJ\\5206718.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\KQXYFPEL\\Li et al. - 2009 - Towards total scene understanding Classification,.pdf:application/pdf}
+}
+
+@article{cordts_cityscapes_2016,
+	title = {The {Cityscapes} {Dataset} for {Semantic} {Urban} {Scene} {Understanding}},
+	url = {https://arxiv.org/abs/1604.01685},
+	language = {en},
+	urldate = {2018-11-15},
+	author = {Cordts, Marius and Omran, Mohamed and Ramos, Sebastian and Rehfeld, Timo and Enzweiler, Markus and Benenson, Rodrigo and Franke, Uwe and Roth, Stefan and Schiele, Bernt},
+	month = apr,
+	year = {2016},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\QWE73P27\\Cordts et al. - 2016 - The Cityscapes Dataset for Semantic Urban Scene Un.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\YZAKSF9G\\1604.html:text/html}
+}
+
+@inproceedings{alahi_social_2016,
+	title = {Social {LSTM}: {Human} {Trajectory} {Prediction} in {Crowded} {Spaces}},
+	shorttitle = {Social {LSTM}},
+	url = {https://www.cv-foundation.org/openaccess/content_cvpr_2016/html/Alahi_Social_LSTM_Human_CVPR_2016_paper.html},
+	urldate = {2018-11-15},
+	author = {Alahi, Alexandre and Goel, Kratarth and Ramanathan, Vignesh and Robicquet, Alexandre and Fei-Fei, Li and Savarese, Silvio},
+	year = {2016},
+	pages = {961--971},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\FNX7UM2J\\Alahi et al. - 2016 - Social LSTM Human Trajectory Prediction in Crowde.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\X9XPRK9G\\Alahi_Social_LSTM_Human_CVPR_2016_paper.html:text/html}
+}
+
+@article{shalev-shwartz_safe_2016,
+	title = {Safe, {Multi}-{Agent}, {Reinforcement} {Learning} for {Autonomous} {Driving}},
+	url = {http://arxiv.org/abs/1610.03295},
+	abstract = {Autonomous driving is a multi-agent setting where the host vehicle must apply sophisticated negotiation skills with other road users when overtaking, giving way, merging, taking left and right turns and while pushing ahead in unstructured urban roadways. Since there are many possible scenarios, manually tackling all possible cases will likely yield a too simplistic policy. Moreover, one must balance between unexpected behavior of other drivers/pedestrians and at the same time not to be too defensive so that normal traffic flow is maintained. In this paper we apply deep reinforcement learning to the problem of forming long term driving strategies. We note that there are two major challenges that make autonomous driving different from other robotic tasks. First, is the necessity for ensuring functional safety - something that machine learning has difficulty with given that performance is optimized at the level of an expectation over many instances. Second, the Markov Decision Process model often used in robotics is problematic in our case because of unpredictable behavior of other agents in this multi-agent scenario. We make three contributions in our work. First, we show how policy gradient iterations can be used without Markovian assumptions. Second, we decompose the problem into a composition of a Policy for Desires (which is to be learned) and trajectory planning with hard constraints (which is not learned). The goal of Desires is to enable comfort of driving, while hard constraints guarantees the safety of driving. Third, we introduce a hierarchical temporal abstraction we call an "Option Graph" with a gating mechanism that significantly reduces the effective horizon and thereby reducing the variance of the gradient estimation even further.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1610.03295 [cs, stat]},
+	author = {Shalev-Shwartz, Shai and Shammah, Shaked and Shashua, Amnon},
+	month = oct,
+	year = {2016},
+	note = {arXiv: 1610.03295},
+	keywords = {Computer Science - Artificial Intelligence, Statistics - Machine Learning, Computer Science - Machine Learning},
+	file = {arXiv\:1610.03295 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\HG9A6EPD\\Shalev-Shwartz et al. - 2016 - Safe, Multi-Agent, Reinforcement Learning for Auto.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\PMMN9YJR\\1610.html:text/html}
+}
+
+@incollection{muller_off-road_2006,
+	title = {Off-{Road} {Obstacle} {Avoidance} through {End}-to-{End} {Learning}},
+	url = {http://papers.nips.cc/paper/2847-off-road-obstacle-avoidance-through-end-to-end-learning.pdf},
+	urldate = {2018-11-15},
+	booktitle = {Advances in {Neural} {Information} {Processing} {Systems} 18},
+	publisher = {MIT Press},
+	author = {Muller, Urs and Ben, Jan and Cosatto, Eric and Flepp, Beat and Cun, Yann L.},
+	editor = {Weiss, Y. and Schölkopf, B. and Platt, J. C.},
+	year = {2006},
+	pages = {739--746},
+	file = {NIPS Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\U6CK52YP\\Muller et al. - 2006 - Off-Road Obstacle Avoidance through End-to-End Lea.pdf:application/pdf;NIPS Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\4NAT4597\\2847-off-road-obstacle-avoidance-through-end-to-end-learning.html:text/html}
+}
+
+@article{zhang_visual_2018,
+	title = {Visual {Interpretability} for {Deep} {Learning}: a {Survey}},
+	shorttitle = {Visual {Interpretability} for {Deep} {Learning}},
+	url = {http://arxiv.org/abs/1802.00614},
+	abstract = {This paper reviews recent studies in understanding neural-network representations and learning neural networks with interpretable/disentangled middle-layer representations. Although deep neural networks have exhibited superior performance in various tasks, the interpretability is always the Achilles' heel of deep neural networks. At present, deep neural networks obtain high discrimination power at the cost of low interpretability of their black-box representations. We believe that high model interpretability may help people to break several bottlenecks of deep learning, e.g., learning from very few annotations, learning via human-computer communications at the semantic level, and semantically debugging network representations. We focus on convolutional neural networks (CNNs), and we revisit the visualization of CNN representations, methods of diagnosing representations of pre-trained CNNs, approaches for disentangling pre-trained CNN representations, learning of CNNs with disentangled representations, and middle-to-end learning based on model interpretability. Finally, we discuss prospective trends in explainable artificial intelligence.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1802.00614 [cs]},
+	author = {Zhang, Quanshi and Zhu, Song-Chun},
+	month = feb,
+	year = {2018},
+	note = {arXiv: 1802.00614},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1802.00614 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\XXQBRWAH\\Zhang and Zhu - 2018 - Visual Interpretability for Deep Learning a Surve.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\E7Y6XREF\\1802.html:text/html}
+}
+
+@article{he_mask_2017,
+	title = {Mask {R}-{CNN}},
+	url = {http://arxiv.org/abs/1703.06870},
+	abstract = {We present a conceptually simple, flexible, and general framework for object instance segmentation. Our approach efficiently detects objects in an image while simultaneously generating a high-quality segmentation mask for each instance. The method, called Mask R-CNN, extends Faster R-CNN by adding a branch for predicting an object mask in parallel with the existing branch for bounding box recognition. Mask R-CNN is simple to train and adds only a small overhead to Faster R-CNN, running at 5 fps. Moreover, Mask R-CNN is easy to generalize to other tasks, e.g., allowing us to estimate human poses in the same framework. We show top results in all three tracks of the COCO suite of challenges, including instance segmentation, bounding-box object detection, and person keypoint detection. Without bells and whistles, Mask R-CNN outperforms all existing, single-model entries on every task, including the COCO 2016 challenge winners. We hope our simple and effective approach will serve as a solid baseline and help ease future research in instance-level recognition. Code has been made available at: https://github.com/facebookresearch/Detectron},
+	urldate = {2018-11-15},
+	journal = {arXiv:1703.06870 [cs]},
+	author = {He, Kaiming and Gkioxari, Georgia and Dollár, Piotr and Girshick, Ross},
+	month = mar,
+	year = {2017},
+	note = {arXiv: 1703.06870},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition},
+	file = {arXiv\:1703.06870 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\9TMH4RQI\\He et al. - 2017 - Mask R-CNN.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\UA8XPWH7\\1703.html:text/html}
+}
+
+@inproceedings{bertinetto_fully-convolutional_2016,
+	series = {Lecture {Notes} in {Computer} {Science}},
+	title = {Fully-{Convolutional} {Siamese} {Networks} for {Object} {Tracking}},
+	isbn = {978-3-319-48881-3},
+	abstract = {The problem of arbitrary object tracking has traditionally been tackled by learning a model of the object’s appearance exclusively online, using as sole training data the video itself. Despite the success of these methods, their online-only approach inherently limits the richness of the model they can learn. Recently, several attempts have been made to exploit the expressive power of deep convolutional networks. However, when the object to track is not known beforehand, it is necessary to perform Stochastic Gradient Descent online to adapt the weights of the network, severely compromising the speed of the system. In this paper we equip a basic tracking algorithm with a novel fully-convolutional Siamese network trained end-to-end on the ILSVRC15 dataset for object detection in video. Our tracker operates at frame-rates beyond real-time and, despite its extreme simplicity, achieves state-of-the-art performance in multiple benchmarks.},
+	language = {en},
+	booktitle = {Computer {Vision} – {ECCV} 2016 {Workshops}},
+	publisher = {Springer International Publishing},
+	author = {Bertinetto, Luca and Valmadre, Jack and Henriques, João F. and Vedaldi, Andrea and Torr, Philip H. S.},
+	editor = {Hua, Gang and Jégou, Hervé},
+	year = {2016},
+	keywords = {Deep-learning, Object-tracking, Siamese-network, Similarity-learning},
+	pages = {850--865},
+	file = {Springer Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\WXD4K33F\\Bertinetto et al. - 2016 - Fully-Convolutional Siamese Networks for Object Tr.pdf:application/pdf}
+}
+
+@inproceedings{nam_learning_2016,
+	title = {Learning {Multi}-{Domain} {Convolutional} {Neural} {Networks} for {Visual} {Tracking}},
+	url = {https://www.cv-foundation.org/openaccess/content_cvpr_2016/html/Nam_Learning_Multi-Domain_Convolutional_CVPR_2016_paper.html},
+	urldate = {2018-11-15},
+	author = {Nam, Hyeonseob and Han, Bohyung},
+	year = {2016},
+	pages = {4293--4302},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\96X2L8H5\\Nam and Han - 2016 - Learning Multi-Domain Convolutional Neural Network.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\TAEB7YNU\\Nam_Learning_Multi-Domain_Convolutional_CVPR_2016_paper.html:text/html}
+}
+
+@article{zhang_neural_2017,
+	title = {Neural {SLAM}: {Learning} to {Explore} with {External} {Memory}},
+	shorttitle = {Neural {SLAM}},
+	url = {http://arxiv.org/abs/1706.09520},
+	abstract = {We present an approach for agents to learn representations of a global map from sensor data, to aid their exploration in new environments. To achieve this, we embed procedures mimicking that of traditional Simultaneous Localization and Mapping (SLAM) into the soft attention based addressing of external memory architectures, in which the external memory acts as an internal representation of the environment. This structure encourages the evolution of SLAM-like behaviors inside a completely differentiable deep neural network. We show that this approach can help reinforcement learning agents to successfully explore new environments where long-term memory is essential. We validate our approach in both challenging grid-world environments and preliminary Gazebo experiments. A video of our experiments can be found at: https://goo.gl/G2Vu5y.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1706.09520 [cs]},
+	author = {Zhang, Jingwei and Tai, Lei and Boedecker, Joschka and Burgard, Wolfram and Liu, Ming},
+	month = jun,
+	year = {2017},
+	note = {arXiv: 1706.09520},
+	keywords = {Computer Science - Robotics, Computer Science - Artificial Intelligence, Computer Science - Machine Learning},
+	file = {arXiv\:1706.09520 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\A53UTJ4D\\Zhang et al. - 2017 - Neural SLAM Learning to Explore with External Mem.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\C96RXLYT\\1706.html:text/html}
+}
+
+@inproceedings{tai_virtual--real_2017,
+	title = {Virtual-to-real deep reinforcement learning: {Continuous} control of mobile robots for mapless navigation},
+	shorttitle = {Virtual-to-real deep reinforcement learning},
+	doi = {10.1109/IROS.2017.8202134},
+	abstract = {We present a learning-based mapless motion planner by taking the sparse 10-dimensional range findings and the target position with respect to the mobile robot coordinate frame as input and the continuous steering commands as output. Traditional motion planners for mobile ground robots with a laser range sensor mostly depend on the obstacle map of the navigation environment where both the highly precise laser sensor and the obstacle map building work of the environment are indispensable. We show that, through an asynchronous deep reinforcement learning method, a mapless motion planner can be trained end-to-end without any manually designed features and prior demonstrations. The trained planner can be directly applied in unseen virtual and real environments. The experiments show that the proposed mapless motion planner can navigate the nonholonomic mobile robot to the desired targets without colliding with any obstacles.},
+	booktitle = {2017 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems} ({IROS})},
+	author = {Tai, L. and Paolo, G. and Liu, M.},
+	month = sep,
+	year = {2017},
+	keywords = {mobile robots, Mobile robots, collision avoidance, Navigation, Neural networks, Training, control engineering computing, learning (artificial intelligence), path planning, navigation, Robot kinematics, 10-dimensional range findings, asynchronous deep reinforcement learning method, Continuous control, continuous steering commands, laser range sensor, laser ranging, mapless motion planner, mapless navigation, mobile ground robots, navigation environment, nonholonomic mobile robot, obstacle map, Virtual-to-real deep reinforcement learning},
+	pages = {31--36},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\AYIBTSC5\\8202134.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\ISD8WKKN\\Tai et al. - 2017 - Virtual-to-real deep reinforcement learning Conti.pdf:application/pdf}
+}
+
+@inproceedings{chen_socially_2017,
+	title = {Socially aware motion planning with deep reinforcement learning},
+	doi = {10.1109/IROS.2017.8202312},
+	abstract = {For robotic vehicles to navigate safely and efficiently in pedestrian-rich environments, it is important to model subtle human behaviors and navigation rules (e.g., passing on the right). However, while instinctive to humans, socially compliant navigation is still difficult to quantify due to the stochasticity in people's behaviors. Existing works are mostly focused on using feature-matching techniques to describe and imitate human paths, but often do not generalize well since the feature values can vary from person to person, and even run to run. This work notes that while it is challenging to directly specify the details of what to do (precise mechanisms of human navigation), it is straightforward to specify what not to do (violations of social norms). Specifically, using deep reinforcement learning, this work develops a time-efficient navigation policy that respects common social norms. The proposed method is shown to enable fully autonomous navigation of a robotic vehicle moving at human walking speed in an environment with many pedestrians.},
+	booktitle = {2017 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems} ({IROS})},
+	author = {Chen, Y. F. and Everett, M. and Liu, M. and How, J. P.},
+	month = sep,
+	year = {2017},
+	keywords = {mobile robots, Robot sensing systems, Collision avoidance, Navigation, pedestrians, control engineering computing, road vehicles, learning (artificial intelligence), Learning (artificial intelligence), Legged locomotion, Machine learning, path planning, deep reinforcement learning, fully autonomous navigation, human behaviors, human navigation, human walking speed, navigation rules, pedestrian-rich environments, robotic vehicle navigation, social norms, socially aware motion planning, socially compliant navigation, time-efficient navigation policy},
+	pages = {1343--1350},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\MSUA6QCT\\8202312.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\7NUHK3HB\\Chen et al. - 2017 - Socially aware motion planning with deep reinforce.pdf:application/pdf}
+}
+
+@inproceedings{gupta_cognitive_2017,
+	title = {Cognitive {Mapping} and {Planning} for {Visual} {Navigation}},
+	doi = {10.1109/CVPR.2017.769},
+	abstract = {We introduce a neural architecture for navigation in novel environments. Our proposed architecture learns to map from first-person views and plans a sequence of actions towards goals in the environment. The Cognitive Mapper and Planner (CMP) is based on two key ideas: a) a unified joint architecture for mapping and planning, such that the mapping is driven by the needs of the planner, and b) a spatial memory with the ability to plan given an incomplete set of observations about the world. CMP constructs a top-down belief map of the world and applies a differentiable neural net planner to produce the next action at each time step. The accumulated belief of the world enables the agent to track visited regions of the environment. Our experiments demonstrate that CMP outperforms both reactive strategies and standard memory-based architectures and performs well in novel environments. Furthermore, we show that CMP can also achieve semantically specified goals, such as "go to a chair".},
+	booktitle = {2017 {IEEE} {Conference} on {Computer} {Vision} and {Pattern} {Recognition} ({CVPR})},
+	author = {Gupta, S. and Davidson, J. and Levine, S. and Sukthankar, R. and Malik, J.},
+	month = jul,
+	year = {2017},
+	keywords = {Robot sensing systems, Navigation, Planning, Visualization, planning (artificial intelligence), Robot kinematics, belief map, belief networks, CMP, Cognitive Mapper and Planer, cognitive systems, differentiable neural net planner, first-person views, neural architecture, neural net architecture, spatial memory, standard memory, unified joint architecture, visual navigation},
+	pages = {7272--7281},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\NB2QDM9P\\8100252.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\K2LAEZ5K\\Gupta et al. - 2017 - Cognitive Mapping and Planning for Visual Navigati.pdf:application/pdf}
+}
+
+@article{simonyan_deep_2013,
+	title = {Deep {Inside} {Convolutional} {Networks}: {Visualising} {Image} {Classification} {Models} and {Saliency} {Maps}},
+	shorttitle = {Deep {Inside} {Convolutional} {Networks}},
+	url = {https://arxiv.org/abs/1312.6034},
+	language = {en},
+	urldate = {2018-11-15},
+	author = {Simonyan, Karen and Vedaldi, Andrea and Zisserman, Andrew},
+	month = dec,
+	year = {2013},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\5T3GURLJ\\Simonyan et al. - 2013 - Deep Inside Convolutional Networks Visualising Im.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\QTSFWQ6U\\1312.html:text/html}
+}
+
+@article{selvaraju_grad-cam:_2016,
+	title = {Grad-{CAM}: {Visual} {Explanations} from {Deep} {Networks} via {Gradient}-based {Localization}},
+	shorttitle = {Grad-{CAM}},
+	url = {http://arxiv.org/abs/1610.02391},
+	abstract = {We propose a technique for producing "visual explanations" for decisions from a large class of CNN-based models, making them more transparent. Our approach - Gradient-weighted Class Activation Mapping (Grad-CAM), uses the gradients of any target concept, flowing into the final convolutional layer to produce a coarse localization map highlighting the important regions in the image for predicting the concept. Unlike previous approaches, GradCAM is applicable to a wide variety of CNN model-families: (1) CNNs with fully-connected layers (e.g. VGG), (2) CNNs used for structured outputs (e.g. captioning), (3) CNNs used in tasks with multimodal inputs (e.g. VQA) or reinforcement learning, without any architectural changes or re-training. We combine GradCAM with fine-grained visualizations to create a high-resolution class-discriminative visualization and apply it to off-the-shelf image classification, captioning, and visual question answering (VQA) models, including ResNet-based architectures. In the context of image classification models, our visualizations (a) lend insights into their failure modes (showing that seemingly unreasonable predictions have reasonable explanations), (b) are robust to adversarial images, (c) outperform previous methods on weakly-supervised localization, (d) are more faithful to the underlying model and (e) help achieve generalization by identifying dataset bias. For captioning and VQA, our visualizations show that even non-attention based models can localize inputs. Finally, we conduct human studies to measure if GradCAM explanations help users establish trust in predictions from deep networks and show that GradCAM helps untrained users successfully discern a "stronger" deep network from a "weaker" one. Our code is available at https://github.com/ramprs/grad-cam. A demo and a video of the demo can be found at http://gradcam.cloudcv.org and youtu.be/COjUB9Izk6E.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1610.02391 [cs]},
+	author = {Selvaraju, Ramprasaath R. and Cogswell, Michael and Das, Abhishek and Vedantam, Ramakrishna and Parikh, Devi and Batra, Dhruv},
+	month = oct,
+	year = {2016},
+	note = {arXiv: 1610.02391},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Artificial Intelligence, Computer Science - Machine Learning},
+	file = {arXiv\:1610.02391 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\X9U9YAFZ\\Selvaraju et al. - 2016 - Grad-CAM Visual Explanations from Deep Networks v.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\KAETP3XP\\1610.html:text/html}
+}
+
+@incollection{krizhevsky_imagenet_2012,
+	title = {{ImageNet} {Classification} with {Deep} {Convolutional} {Neural} {Networks}},
+	url = {http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf},
+	urldate = {2018-11-15},
+	booktitle = {Advances in {Neural} {Information} {Processing} {Systems} 25},
+	publisher = {Curran Associates, Inc.},
+	author = {Krizhevsky, Alex and Sutskever, Ilya and Hinton, Geoffrey E},
+	editor = {Pereira, F. and Burges, C. J. C. and Bottou, L. and Weinberger, K. Q.},
+	year = {2012},
+	pages = {1097--1105},
+	file = {NIPS Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\NZR5KRMZ\\Krizhevsky et al. - 2012 - ImageNet Classification with Deep Convolutional Ne.pdf:application/pdf;NIPS Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\HMZZB37R\\4824-imagenet-classification-with-deep-convolutional-neural-networks.html:text/html}
+}
+
+@article{hinton_deep_2012,
+	title = {Deep {Neural} {Networks} for {Acoustic} {Modeling} in {Speech} {Recognition}: {The} {Shared} {Views} of {Four} {Research} {Groups}},
+	volume = {29},
+	issn = {1053-5888},
+	shorttitle = {Deep {Neural} {Networks} for {Acoustic} {Modeling} in {Speech} {Recognition}},
+	doi = {10.1109/MSP.2012.2205597},
+	abstract = {Most current speech recognition systems use hidden Markov models (HMMs) to deal with the temporal variability of speech and Gaussian mixture models (GMMs) to determine how well each state of each HMM fits a frame or a short window of frames of coefficients that represents the acoustic input. An alternative way to evaluate the fit is to use a feed-forward neural network that takes several frames of coefficients as input and produces posterior probabilities over HMM states as output. Deep neural networks (DNNs) that have many hidden layers and are trained using new methods have been shown to outperform GMMs on a variety of speech recognition benchmarks, sometimes by a large margin. This article provides an overview of this progress and represents the shared views of four research groups that have had recent successes in using DNNs for acoustic modeling in speech recognition.},
+	number = {6},
+	journal = {IEEE Signal Processing Magazine},
+	author = {Hinton, G. and Deng, L. and Yu, D. and Dahl, G. E. and Mohamed, A. and Jaitly, N. and Senior, A. and Vanhoucke, V. and Nguyen, P. and Sainath, T. N. and Kingsbury, B.},
+	month = nov,
+	year = {2012},
+	keywords = {Neural networks, Training, Data models, acoustic modeling, Acoustics, Automatic speech recognition, deep neural networks, feed-forward neural network, feedforward neural nets, Gaussian mixture models, Gaussian processes, hidden Markov models, Hidden Markov models, HMM states, posterior probabilities, speech recognition, Speech recognition, temporal variability},
+	pages = {82--97},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\U7ZDWBKT\\6296526.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\MTG8JZJK\\Hinton et al. - 2012 - Deep Neural Networks for Acoustic Modeling in Spee.pdf:application/pdf}
+}
+
+@article{pfeiffer_perception_2017,
+	title = {From {Perception} to {Decision}: {A} {Data}-driven {Approach} to {End}-to-end {Motion} {Planning} for {Autonomous} {Ground} {Robots}},
+	shorttitle = {From {Perception} to {Decision}},
+	url = {http://arxiv.org/abs/1609.07910},
+	doi = {10.1109/ICRA.2017.7989182},
+	abstract = {Learning from demonstration for motion planning is an ongoing research topic. In this paper we present a model that is able to learn the complex mapping from raw 2D-laser range findings and a target position to the required steering commands for the robot. To our best knowledge, this work presents the first approach that learns a target-oriented end-to-end navigation model for a robotic platform. The supervised model training is based on expert demonstrations generated in simulation with an existing motion planner. We demonstrate that the learned navigation model is directly transferable to previously unseen virtual and, more interestingly, real-world environments. It can safely navigate the robot through obstacle-cluttered environments to reach the provided targets. We present an extensive qualitative and quantitative evaluation of the neural network-based motion planner, and compare it to a grid-based global approach, both in simulation and in real-world experiments.},
+	urldate = {2018-11-15},
+	journal = {2017 IEEE International Conference on Robotics and Automation (ICRA)},
+	author = {Pfeiffer, Mark and Schaeuble, Michael and Nieto, Juan and Siegwart, Roland and Cadena, Cesar},
+	month = may,
+	year = {2017},
+	note = {arXiv: 1609.07910},
+	keywords = {Computer Science - Robotics},
+	pages = {1527--1533},
+	file = {arXiv\:1609.07910 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\DHUVD67P\\Pfeiffer et al. - 2017 - From Perception to Decision A Data-driven Approac.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\MM9T9DU5\\1609.html:text/html}
+}
+
+@article{levine_end--end_2015,
+	title = {End-to-{End} {Training} of {Deep} {Visuomotor} {Policies}},
+	url = {http://arxiv.org/abs/1504.00702},
+	abstract = {Policy search methods can allow robots to learn control policies for a wide range of tasks, but practical applications of policy search often require hand-engineered components for perception, state estimation, and low-level control. In this paper, we aim to answer the following question: does training the perception and control systems jointly end-to-end provide better performance than training each component separately? To this end, we develop a method that can be used to learn policies that map raw image observations directly to torques at the robot's motors. The policies are represented by deep convolutional neural networks (CNNs) with 92,000 parameters, and are trained using a partially observed guided policy search method, which transforms policy search into supervised learning, with supervision provided by a simple trajectory-centric reinforcement learning method. We evaluate our method on a range of real-world manipulation tasks that require close coordination between vision and control, such as screwing a cap onto a bottle, and present simulated comparisons to a range of prior policy search methods.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1504.00702 [cs]},
+	author = {Levine, Sergey and Finn, Chelsea and Darrell, Trevor and Abbeel, Pieter},
+	month = apr,
+	year = {2015},
+	note = {arXiv: 1504.00702},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics, Computer Science - Machine Learning},
+	file = {arXiv\:1504.00702 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\A4ZUYSW7\\Levine et al. - 2015 - End-to-End Training of Deep Visuomotor Policies.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\63XWI7XW\\1504.html:text/html}
+}
+
+@article{pan_agile_2017,
+	title = {Agile {Off}-{Road} {Autonomous} {Driving} {Using} {End}-to-{End} {Deep} {Imitation} {Learning}},
+	url = {https://arxiv.org/abs/1709.07174},
+	language = {en},
+	urldate = {2018-11-15},
+	author = {Pan, Yunpeng and Cheng, Ching-An and Saigol, Kamil and Lee, Keuntaek and Yan, Xinyan and Theodorou, Evangelos and Boots, Byron},
+	month = sep,
+	year = {2017},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\TXHAC6ZS\\Pan et al. - 2017 - Agile Off-Road Autonomous Driving Using End-to-End.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\J5R2J8IC\\1709.html:text/html}
+}
+
+@article{mirowski_learning_2016,
+	title = {Learning to {Navigate} in {Complex} {Environments}},
+	url = {https://arxiv.org/abs/1611.03673},
+	language = {en},
+	urldate = {2018-11-15},
+	author = {Mirowski, Piotr and Pascanu, Razvan and Viola, Fabio and Soyer, Hubert and Ballard, Andrew J. and Banino, Andrea and Denil, Misha and Goroshin, Ross and Sifre, Laurent and Kavukcuoglu, Koray and Kumaran, Dharshan and Hadsell, Raia},
+	month = nov,
+	year = {2016},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\4N5RZEV4\\Mirowski et al. - 2016 - Learning to Navigate in Complex Environments.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\XW8F64YT\\1611.html:text/html}
+}
+
+@article{long_deep-learned_2016,
+	title = {Deep-{Learned} {Collision} {Avoidance} {Policy} for {Distributed} {Multi}-{Agent} {Navigation}},
+	url = {https://arxiv.org/abs/1609.06838},
+	language = {en},
+	urldate = {2018-11-15},
+	author = {Long, Pinxin and Liu, Wenxi and Pan, Jia},
+	month = sep,
+	year = {2016},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\VJNVTYBE\\Long et al. - 2016 - Deep-Learned Collision Avoidance Policy for Distri.pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\NBSFXGPK\\1609.html:text/html}
+}
+
+@inproceedings{chen_decentralized_2017,
+	title = {Decentralized non-communicating multiagent collision avoidance with deep reinforcement learning},
+	doi = {10.1109/ICRA.2017.7989037},
+	abstract = {Finding feasible, collision-free paths for multiagent systems can be challenging, particularly in non-communicating scenarios where each agent's intent (e.g. goal) is unobservable to the others. In particular, finding time efficient paths often requires anticipating interaction with neighboring agents, the process of which can be computationally prohibitive. This work presents a decentralized multiagent collision avoidance algorithm based on a novel application of deep reinforcement learning, which effectively offloads the online computation (for predicting interaction patterns) to an offline learning procedure. Specifically, the proposed approach develops a value network that encodes the estimated time to the goal given an agent's joint configuration (positions and velocities) with its neighbors. Use of the value network not only admits efficient (i.e., real-time implementable) queries for finding a collision-free velocity vector, but also considers the uncertainty in the other agents' motion. Simulation results show more than 26\% improvement in paths quality (i.e., time to reach the goal) when compared with optimal reciprocal collision avoidance (ORCA), a state-of-the-art collision avoidance strategy.},
+	booktitle = {2017 {IEEE} {International} {Conference} on {Robotics} and {Automation} ({ICRA})},
+	author = {Chen, Y. F. and Liu, M. and Everett, M. and How, J. P.},
+	month = may,
+	year = {2017},
+	keywords = {Kinematics, mobile robots, robot kinematics, collision avoidance, Collision avoidance, Navigation, Planning, learning (artificial intelligence), Learning (artificial intelligence), multi-robot systems, deep reinforcement learning, agent joint configuration, agent motion uncertainty, agent positions, agent velocities, collision-free paths, collision-free velocity vector, decentralised control, decentralized noncommunicating multiagent collision avoidance, Decision making, interaction pattern prediction, multiagent systems, offline learning procedure, online computation, path quality improvement, Real-time systems},
+	pages = {285--292},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\3P5E9ZGF\\7989037.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\BD8HSN76\\Chen et al. - 2017 - Decentralized non-communicating multiagent collisi.pdf:application/pdf}
+}
+
+@article{hoshen_vain:_2017,
+	title = {{VAIN}: {Attentional} {Multi}-agent {Predictive} {Modeling}},
+	shorttitle = {{VAIN}},
+	url = {http://arxiv.org/abs/1706.06122},
+	abstract = {Multi-agent predictive modeling is an essential step for understanding physical, social and team-play systems. Recently, Interaction Networks (INs) were proposed for the task of modeling multi-agent physical systems, INs scale with the number of interactions in the system (typically quadratic or higher order in the number of agents). In this paper we introduce VAIN, a novel attentional architecture for multi-agent predictive modeling that scales linearly with the number of agents. We show that VAIN is effective for multi-agent predictive modeling. Our method is evaluated on tasks from challenging multi-agent prediction domains: chess and soccer, and outperforms competing multi-agent approaches.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1706.06122 [cs]},
+	author = {Hoshen, Yedid},
+	month = jun,
+	year = {2017},
+	note = {arXiv: 1706.06122},
+	keywords = {Computer Science - Artificial Intelligence, Computer Science - Machine Learning},
+	file = {arXiv\:1706.06122 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\THFREGHQ\\Hoshen - 2017 - VAIN Attentional Multi-agent Predictive Modeling.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\RZXBIIBU\\1706.html:text/html}
+}
+
+@article{vemula_social_2017,
+	title = {Social {Attention}: {Modeling} {Attention} in {Human} {Crowds}},
+	shorttitle = {Social {Attention}},
+	url = {http://arxiv.org/abs/1710.04689},
+	abstract = {Robots that navigate through human crowds need to be able to plan safe, efficient, and human predictable trajectories. This is a particularly challenging problem as it requires the robot to predict future human trajectories within a crowd where everyone implicitly cooperates with each other to avoid collisions. Previous approaches to human trajectory prediction have modeled the interactions between humans as a function of proximity. However, that is not necessarily true as some people in our immediate vicinity moving in the same direction might not be as important as other people that are further away, but that might collide with us in the future. In this work, we propose Social Attention, a novel trajectory prediction model that captures the relative importance of each person when navigating in the crowd, irrespective of their proximity. We demonstrate the performance of our method against a state-of-the-art approach on two publicly available crowd datasets and analyze the trained attention model to gain a better understanding of which surrounding agents humans attend to, when navigating in a crowd.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1710.04689 [cs]},
+	author = {Vemula, Anirudh and Muelling, Katharina and Oh, Jean},
+	month = oct,
+	year = {2017},
+	note = {arXiv: 1710.04689},
+	keywords = {Computer Science - Robotics, Computer Science - Machine Learning},
+	file = {arXiv\:1710.04689 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\KR2V2HM2\\Vemula et al. - 2017 - Social Attention Modeling Attention in Human Crow.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\Y3IMUVYM\\1710.html:text/html}
+}
+
+@article{helbing_social_1995,
+	title = {Social {Force} {Model} for {Pedestrian} {Dynamics}},
+	volume = {51},
+	issn = {1063-651X, 1095-3787},
+	url = {http://arxiv.org/abs/cond-mat/9805244},
+	doi = {10.1103/PhysRevE.51.4282},
+	abstract = {It is suggested that the motion of pedestrians can be described as if they would be subject to `social forces'. These `forces' are not directly exerted by the pedestrians' personal environment, but they are a measure for the internal motivations of the individuals to perform certain actions (movements). The corresponding force concept is discussed in more detail and can be also applied to the description of other behaviors. In the presented model of pedestrian behavior several force terms are essential: First, a term describing the acceleration towards the desired velocity of motion. Second, terms reflecting that a pedestrian keeps a certain distance to other pedestrians and borders. Third, a term modeling attractive effects. The resulting equations of motion are nonlinearly coupled Langevin equations. Computer simulations of crowds of interacting pedestrians show that the social force model is capable of describing the self-organization of several observed collective effects of pedestrian behavior very realistically.},
+	number = {5},
+	urldate = {2018-11-15},
+	journal = {Physical Review E},
+	author = {Helbing, Dirk and Molnar, Peter},
+	month = may,
+	year = {1995},
+	note = {arXiv: cond-mat/9805244},
+	keywords = {Condensed Matter - Statistical Mechanics, Nonlinear Sciences - Pattern Formation and Solitons},
+	pages = {4282--4286},
+	file = {arXiv\:cond-mat/9805244 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\SJHDN4UK\\Helbing and Molnar - 1995 - Social Force Model for Pedestrian Dynamics.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\FN36HCXR\\9805244.html:text/html}
+}
+
+@inproceedings{trautman_unfreezing_2010,
+	title = {Unfreezing the robot: {Navigation} in dense, interacting crowds},
+	shorttitle = {Unfreezing the robot},
+	doi = {10.1109/IROS.2010.5654369},
+	abstract = {In this paper, we study the safe navigation of a mobile robot through crowds of dynamic agents with uncertain trajectories. Existing algorithms suffer from the “freezing robot” problem: once the environment surpasses a certain level of complexity, the planner decides that all forward paths are unsafe, and the robot freezes in place (or performs unnecessary maneuvers) to avoid collisions. Since a feasible path typically exists, this behavior is suboptimal. Existing approaches have focused on reducing the predictive uncertainty for individual agents by employing more informed models or heuristically limiting the predictive covariance to prevent this overcautious behavior. In this work, we demonstrate that both the individual prediction and the predictive uncertainty have little to do with the frozen robot problem. Our key insight is that dynamic agents solve the frozen robot problem by engaging in “joint collision avoidance”: They cooperatively make room to create feasible trajectories. We develop IGP, a nonparametric statistical model based on dependent output Gaussian processes that can estimate crowd interaction from data. Our model naturally captures the non-Markov nature of agent trajectories, as well as their goal-driven navigation. We then show how planning in this model can be efficiently implemented using particle based inference. Lastly, we evaluate our model on a dataset of pedestrians entering and leaving a building, first comparing the model with actual pedestrians, and find that the algorithm either outperforms human pedestrians or performs very similarly to the pedestrians. We also present an experiment where a covariance reduction method results in highly overcautious behavior, while our model performs desirably.},
+	booktitle = {2010 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems}},
+	author = {Trautman, P. and Krause, A.},
+	month = oct,
+	year = {2010},
+	keywords = {mobile robots, collision avoidance, Collision avoidance, Navigation, Predictive models, Trajectory, Joints, robot vision, robot navigation, mobile robot, Robot kinematics, Gaussian processes, crowd interaction estimation, freezing robot problem, goal-driven navigation, human pedestrian, IGP, interacting Gaussian process, nonparametric statistical model, predictive covariance, safe navigation, uncertain systems, uncertain trajectory},
+	pages = {797--803},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\6ZJGV37W\\5654369.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\797SKTMR\\Trautman 和 Krause - 2010 - Unfreezing the robot Navigation in dense, interac.pdf:application/pdf}
+}
+
+@article{patron-perez_structured_2012,
+	title = {Structured {Learning} of {Human} {Interactions} in {TV} {Shows}},
+	volume = {34},
+	issn = {0162-8828},
+	doi = {10.1109/TPAMI.2012.24},
+	abstract = {The objective of this work is recognition and spatiotemporal localization of two-person interactions in video. Our approach is person-centric. As a first stage we track all upper bodies and heads in a video using a tracking-by-detection approach that combines detections with KLT tracking and clique partitioning, together with occlusion detection, to yield robust person tracks. We develop local descriptors of activity based on the head orientation (estimated using a set of pose-specific classifiers) and the local spatiotemporal region around them, together with global descriptors that encode the relative positions of people as a function of interaction type. Learning and inference on the model uses a structured output SVM which combines the local and global descriptors in a principled manner. Inference using the model yields information about which pairs of people are interacting, their interaction class, and their head orientation (which is also treated as a variable, enabling mistakes in the classifier to be corrected using global context). We show that inference can be carried out with polynomial complexity in the number of people, and describe an efficient algorithm for this. The method is evaluated on a new dataset comprising 300 video clips acquired from 23 different TV shows and on the benchmark UT–Interaction dataset.},
+	number = {12},
+	journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+	author = {Patron-Perez, A. and Marszalek, M. and Reid, I. and Zisserman, A.},
+	month = dec,
+	year = {2012},
+	keywords = {computational complexity, learning (artificial intelligence), video signal processing, Head, Magnetic heads, Humans, Image Processing, Computer-Assisted, object tracking, Video Recording, object detection, Tracking, Support vector machines, clique partitioning, Context awareness, head orientation, Human factors, Human interaction recognition, human interactions, inference, inference mechanisms, Interpersonal Relations, KLT tracking, local spatiotemporal region, occlusion detection, person-centric approach, polynomial complexity, Posture, robust person tracks, spatiotemporal localization, Spatiotemporal phenomena, structured learning, structured SVM, support vector machines, Support Vector Machines, SVM, Television, tracking-by-detection approach, TV shows, two-person interactions, UT-interaction dataset, video clips, video retrieval, Video retrieval},
+	pages = {2441--2453},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\ENMERBPT\\6133287.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\6YZU49WE\\Patron-Perez et al. - 2012 - Structured Learning of Human Interactions in TV Sh.pdf:application/pdf}
+}
+
+@inproceedings{hoai_talking_2014,
+	title = {Talking {Heads}: {Detecting} {Humans} and {Recognizing} {Their} {Interactions}},
+	shorttitle = {Talking {Heads}},
+	doi = {10.1109/CVPR.2014.117},
+	abstract = {The objective of this work is to accurately and efficiently detect configurations of one or more people in edited TV material. Such configurations often appear in standard arrangements due to cinematic style, and we take advantage of this to provide scene context. We make the following contributions: first, we introduce a new learnable context aware configuration model for detecting sets of people in TV material that predicts the scale and location of each upper body in the configuration, second, we show that inference of the model can be solved globally and efficiently using dynamic programming, and implement a maximum margin learning framework, and third, we show that the configuration model substantially outperforms a Deformable Part Model (DPM) for predicting upper body locations in video frames, even when the DPM is equipped with the context of other upper bodies. Experiments are performed over two datasets: the TV Human Interaction dataset, and 150 episodes from four different TV shows. We also demonstrate the benefits of the model in recognizing interactions in TV shows.},
+	booktitle = {2014 {IEEE} {Conference} on {Computer} {Vision} and {Pattern} {Recognition}},
+	author = {Hoai, M. and Zisserman, A.},
+	month = jun,
+	year = {2014},
+	keywords = {Computational modeling, learning (artificial intelligence), Detectors, human recognition, image recognition, Context modeling, inference mechanisms, Deformable models, deformable part model, DPM, dynamic programming, edited TV material, human detection, human interaction dataset, Inference algorithms, inference model, learnable context aware configuration model, Materials, maximum margin learning framework, TV, ubiquitous computing},
+	pages = {875--882},
+	file = {IEEE Xplore Abstract Record:C\:\\Users\\Yuejiang\\Zotero\\storage\\IWPG9M5Y\\6909512.html:text/html;IEEE Xplore Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\3L6ZPA2V\\Hoai and Zisserman - 2014 - Talking Heads Detecting Humans and Recognizing Th.pdf:application/pdf}
+}
+
+@article{liu_attention_2016,
+	title = {Attention {Correctness} in {Neural} {Image} {Captioning}},
+	url = {http://arxiv.org/abs/1605.09553},
+	abstract = {Attention mechanisms have recently been introduced in deep learning for various tasks in natural language processing and computer vision. But despite their popularity, the "correctness" of the implicitly-learned attention maps has only been assessed qualitatively by visualization of several examples. In this paper we focus on evaluating and improving the correctness of attention in neural image captioning models. Specifically, we propose a quantitative evaluation metric for the consistency between the generated attention maps and human annotations, using recently released datasets with alignment between regions in images and entities in captions. We then propose novel models with different levels of explicit supervision for learning attention maps during training. The supervision can be strong when alignment between regions and caption entities are available, or weak when only object segments and categories are provided. We show on the popular Flickr30k and COCO datasets that introducing supervision of attention maps during training solidly improves both attention correctness and caption quality, showing the promise of making machine perception more human-like.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1605.09553 [cs]},
+	author = {Liu, Chenxi and Mao, Junhua and Sha, Fei and Yuille, Alan},
+	month = may,
+	year = {2016},
+	note = {arXiv: 1605.09553},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, Computer Science - Computation and Language},
+	file = {arXiv\:1605.09553 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\HGDB9HJR\\Liu et al. - 2016 - Attention Correctness in Neural Image Captioning.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\7TADY5FJ\\1605.html:text/html}
+}
+
+@article{liu_neural_2016,
+	title = {Neural {Machine} {Translation} with {Supervised} {Attention}},
+	url = {http://arxiv.org/abs/1609.04186},
+	abstract = {The attention mechanisim is appealing for neural machine translation, since it is able to dynam- ically encode a source sentence by generating a alignment between a target word and source words. Unfortunately, it has been proved to be worse than conventional alignment models in aligment accuracy. In this paper, we analyze and explain this issue from the point view of re- ordering, and propose a supervised attention which is learned with guidance from conventional alignment models. Experiments on two Chinese-to-English translation tasks show that the super- vised attention mechanism yields better alignments leading to substantial gains over the standard attention based NMT.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1609.04186 [cs]},
+	author = {Liu, Lemao and Utiyama, Masao and Finch, Andrew and Sumita, Eiichiro},
+	month = sep,
+	year = {2016},
+	note = {arXiv: 1609.04186},
+	keywords = {Computer Science - Computation and Language},
+	file = {arXiv\:1609.04186 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\4N9IRQ3N\\Liu et al. - 2016 - Neural Machine Translation with Supervised Attenti.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\X3ITIXY3\\1609.html:text/html}
+}
+
+@article{das_human_2016,
+	title = {Human {Attention} in {Visual} {Question} {Answering}: {Do} {Humans} and {Deep} {Networks} {Look} at the {Same} {Regions}?},
+	shorttitle = {Human {Attention} in {Visual} {Question} {Answering}},
+	url = {http://arxiv.org/abs/1606.03556},
+	abstract = {We conduct large-scale studies on `human attention' in Visual Question Answering (VQA) to understand where humans choose to look to answer questions about images. We design and test multiple game-inspired novel attention-annotation interfaces that require the subject to sharpen regions of a blurred image to answer a question. Thus, we introduce the VQA-HAT (Human ATtention) dataset. We evaluate attention maps generated by state-of-the-art VQA models against human attention both qualitatively (via visualizations) and quantitatively (via rank-order correlation). Overall, our experiments show that current attention models in VQA do not seem to be looking at the same regions as humans.},
+	urldate = {2018-11-15},
+	journal = {arXiv:1606.03556 [cs]},
+	author = {Das, Abhishek and Agrawal, Harsh and Zitnick, C. Lawrence and Parikh, Devi and Batra, Dhruv},
+	month = jun,
+	year = {2016},
+	note = {arXiv: 1606.03556},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Computation and Language},
+	file = {arXiv\:1606.03556 PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\HQZB5FR8\\Das et al. - 2016 - Human Attention in Visual Question Answering Do H.pdf:application/pdf;arXiv.org Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\K2DEMHUS\\1606.html:text/html}
+}
+
+@inproceedings{dean_pomerleau_alvinn:_1989,
+	title = {{ALVINN}: {An} {Autonomous} {Land} {Vehicle} in a {Neural} {Network}},
+	url = {https://papers.nips.cc/paper/95-alvinn-an-autonomous-land-vehicle-in-a-neural-network},
+	urldate = {2018-11-16},
+	booktitle = {Advances in neural information processing systems},
+	author = {{Dean Pomerleau}},
+	year = {1989},
+	file = {ALVINN\: An Autonomous Land Vehicle in a Neural Network:C\:\\Users\\Yuejiang\\Zotero\\storage\\85YMXPQT\\95-alvinn-an-autonomous-land-vehicle-in-a-neural-network.html:text/html}
+}
+
+@article{bojarski_explaining_2017,
+	title = {Explaining {How} a {Deep} {Neural} {Network} {Trained} with {End}-to-{End} {Learning} {Steers} a {Car}},
+	url = {https://arxiv.org/abs/1704.07911},
+	language = {en},
+	urldate = {2018-11-16},
+	author = {Bojarski, Mariusz and Yeres, Philip and Choromanska, Anna and Choromanski, Krzysztof and Firner, Bernhard and Jackel, Lawrence and Muller, Urs},
+	month = apr,
+	year = {2017},
+	file = {Full Text PDF:C\:\\Users\\Yuejiang\\Zotero\\storage\\JQTY4W67\\Bojarski et al. - 2017 - Explaining How a Deep Neural Network Trained with .pdf:application/pdf;Snapshot:C\:\\Users\\Yuejiang\\Zotero\\storage\\XC56FD8W\\1704.html:text/html}
+}
+
+@book{latombe_robot_2012,
+	title = {Robot {Motion} {Planning}},
+	isbn = {978-1-4615-4022-9},
+	abstract = {One of the ultimate goals in Robotics is to create autonomous robots. Such robots will accept high-level descriptions of tasks and will execute them without further human intervention. The input descriptions will specify what the user wants done rather than how to do it. The robots will be any kind of versatile mechanical device equipped with actuators and sensors under the control of a computing system. Making progress toward autonomous robots is of major practical inter est in a wide variety of application domains including manufacturing, construction, waste management, space exploration, undersea work, as sistance for the disabled, and medical surgery. It is also of great technical interest, especially for Computer Science, because it raises challenging and rich computational issues from which new concepts of broad useful ness are likely to emerge. Developing the technologies necessary for autonomous robots is a formidable undertaking with deep interweaved ramifications in auto mated reasoning, perception and control. It raises many important prob lems. One of them - motion planning - is the central theme of this book. It can be loosely stated as follows: How can a robot decide what motions to perform in order to achieve goal arrangements of physical objects? This capability is eminently necessary since, by definition, a robot accomplishes tasks by moving in the real world. The minimum one would expect from an autonomous robot is the ability to plan its x Preface own motions.},
+	language = {en},
+	publisher = {Springer Science \& Business Media},
+	author = {Latombe, Jean-Claude},
+	month = dec,
+	year = {2012},
+	note = {Google-Books-ID: nQ7aBwAAQBAJ},
+	keywords = {Computers / Computer Vision \& Pattern Recognition, Computers / Intelligence (AI) \& Semantics, Technology \& Engineering / Automation, Technology \& Engineering / Electrical}
+}
+
+@inproceedings{airsim2017fsr,
+  author = {Shital Shah and Debadeepta Dey and Chris Lovett and Ashish Kapoor},
+  title = {AirSim: High-Fidelity Visual and Physical Simulation for Autonomous Vehicles},
+  year = {2017},
+  booktitle = {Field and Service Robotics},
+  eprint = {arXiv:1705.05065},
+  url = {https://arxiv.org/abs/1705.05065}
+}
