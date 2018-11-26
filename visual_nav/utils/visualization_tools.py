@@ -22,6 +22,7 @@ def heatmap(image, heat_map, alpha=0.6, cmap='Reds', ax=None):
     max_value = np.max(heat_map_resized)
     min_value = np.min(heat_map_resized)
     normalized_heat_map = (heat_map_resized - min_value) / (max_value - min_value)
+    # normalized_heat_map = heat_map
 
     # display
     if not ax:
@@ -33,6 +34,7 @@ def heatmap(image, heat_map, alpha=0.6, cmap='Reds', ax=None):
 
 def top_down_view(state, ax, in_view_humans):
     ax.clear()
+    ax.set_title('Demonstrator')
     robot_radius = 0.3
     human_radius = 0.5
     robot = state.self_state
@@ -64,7 +66,7 @@ def top_down_view(state, ax, in_view_humans):
     robot_circle = plt.Circle((robot.px, robot.py), robot_radius, fill=True, color=robot_color)
     ax.add_artist(robot_circle)
     ax.add_artist(goal)
-    ax.legend([robot_circle, goal], ['Robot', 'Goal'])
+    ax.legend([robot_circle, goal], ['Robot', 'Goal'], fontsize=14)
 
     # add humans and their numbers
     human_circles = [plt.Circle((humans[i].px, humans[i].py), human_radius, fill=False)
@@ -73,7 +75,7 @@ def top_down_view(state, ax, in_view_humans):
         ax.add_artist(human_circle)
 
     for i in range(len(humans)):
-        ax.text(human_circles[i].center[0]-0.1, human_circles[i].center[1]-0.1, str(i), fontsize=8, color='black')
+        ax.text(human_circles[i].center[0]-0.1, human_circles[i].center[1]-0.1, str(i), fontsize=12, color='black')
 
     # add time annotation
     # time = plt.text(0.4, 0.9, 'Time: {}'.format(0), transform=ax.transAxes)
@@ -81,7 +83,7 @@ def top_down_view(state, ax, in_view_humans):
 
     # visualize attention scores
     for i, (human_index, attention) in enumerate(in_view_humans):
-        ax.text(-1, 6 - 0.5 * i, 'Human {}: {:.2f}'.format(human_index, attention))
+        ax.text(-1, 6 - 0.5 * i, 'Human {}: {:.2f}'.format(human_index, attention), fontsize=14)
 
     # compute orientation in each step and use arrow to show the direction
     robot_orientation = ((robot.px, robot.py), (robot.px + robot_radius * np.cos(robot.theta),

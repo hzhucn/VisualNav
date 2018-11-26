@@ -4,7 +4,7 @@ from visual_nav.utils.model_archive import *
 class GDNet(nn.Module):
     def __init__(self, in_channels=4, num_actions=18, with_sa=True, with_ga=True, goal_embedding_as_feature=False,
                  share_image_embedding=False, mean_pool_feature_map=False, residual_connection=False,
-                 attention_as_regressor=False, sa_input_to_ga=False):
+                 attention_as_regressor=False, sa_input_to_ga=False, regression=False):
         """
         A base network architecture for goal-driven tasks
         """
@@ -63,7 +63,10 @@ class GDNet(nn.Module):
         # action classification layers
         self.fc4 = nn.Linear(image_feature_dim + goal_feature_dim, 256)
         self.fc5 = nn.Linear(256, 520)
-        self.fc6 = nn.Linear(520, num_actions)
+        if regression:
+            self.fc6 = nn.Linear(520, 2)
+        else:
+            self.fc6 = nn.Linear(520, num_actions)
         self.fc_block = None
 
         # for visualization
