@@ -278,9 +278,6 @@ class VisualSim(Env):
                 human_states.append(human_state)
                 human_index_mapping[i] = len(human_states) - 1
 
-        if not human_states:
-            human_states.append(ObservableState(3, -2, 0, 0, 0.1))
-
         joint_state = JointState(robot_state, human_states)
 
         if index_mapping:

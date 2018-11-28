@@ -1,5 +1,4 @@
 import sys
-from collections import namedtuple
 import time
 import copy
 import random
@@ -9,6 +8,8 @@ import argparse
 import shutil
 import pprint
 import configparser
+import importlib.util
+from collections import namedtuple
 from operator import itemgetter
 from collections import defaultdict
 
@@ -182,10 +183,12 @@ class Trainer(object):
     def initialize_demonstrator(self):
         model_dir = 'data/sarl'
         assert os.path.exists(model_dir)
+        spec = importlib.util.spec_from_file_location('config', os.path.join(model_dir, 'config.py'))
+        config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config)
+        policy_config = config.PolicyConfig()
         policy = SARL()
         policy.epsilon = 0
-        policy_config = configparser.RawConfigParser()
-        policy_config.read(os.path.join(model_dir, 'policy.config'))
         policy.configure(policy_config)
         policy.model.load_state_dict(torch.load(os.path.join(model_dir, 'rl_model.pth')))
 
