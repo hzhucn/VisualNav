@@ -41,7 +41,7 @@ class VisualSim(Env):
       SurfaceNormals = 6,
       Infrared = 7
     """
-    def __init__(self, image_type='DepthPerspective', reward_shaping=False, curriculum_learning=False):
+    def __init__(self, config):
         self.robot_dynamics = False
         self.blocking = True
         self.time_step = 0.25
@@ -55,12 +55,12 @@ class VisualSim(Env):
         self.collision_penalty = -0.25
         self.success_reward = 1
         self.max_time = 50
-        self.reward_shaping = reward_shaping
-        self.curriculum_learning = curriculum_learning
+        self.reward_shaping = config.reward_shaping
+        self.curriculum_learning = config.curriculum_learning
         self.early_reward_ratio = 0.5
 
         # human
-        self.human_num = 8
+        self.human_num = config.human_num
         self.human_states = defaultdict(list)
         # 2.7 * 0.73
         self.human_radius = 1
@@ -71,14 +71,15 @@ class VisualSim(Env):
         self.robot_states = list()
 
         # action space
-        self.speed_samples = 2
-        self.rotation_samples = 7
+        self.speed_samples = config.speed_samples
+        self.rotation_samples = config.rotation_samples
+        self.abs_rotation_bound = config.abs_rotation_bound
         self.actions = self._build_action_space()
         self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
 
         # observation_space
-        self.image_type = image_type
-        self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[image_type].channel_size))
+        self.image_type = config.image_type
+        self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[config.image_type].channel_size))
         self.fov = np.pi / 3 * 2
 
         self.client = None
@@ -221,7 +222,7 @@ class VisualSim(Env):
         yaw = airsim.to_eularian_angles(pose.orientation)[2]
         phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val) - yaw
         goal = Goal(r, phi)
-        logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, np.rad2deg(phi)))
+        # logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, np.rad2deg(phi)))
 
         observation = Observation(image, goal)
 
@@ -314,7 +315,7 @@ class VisualSim(Env):
     def _build_action_space(self):
         speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
                   range(self.speed_samples)]
-        rotations = np.linspace(-np.pi / 3, np.pi / 3, self.rotation_samples)
+        rotations = np.linspace(-self.abs_rotation_bound, self.abs_rotation_bound, self.rotation_samples)
 
         actions = [ActionRot(0, 0)]
         for rotation, speed in itertools.product(rotations, speeds):

@@ -1,4 +1,4 @@
-from visual_nav.utils.model_archive import *
+from visual_nav.models.model_archive import *
 
 
 class GDNet(nn.Module):

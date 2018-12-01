@@ -51,7 +51,7 @@ class MyMonitor(Monitor):
             format(success_rate, collision_rate, overtime_rates, avg_time, avg_reward)
 
     def get_episode_summary(self, ):
-        return 'Episode finished in {}s with total reward {:.4f} and end signal {}'.\
+        return 'Episode finished in {:<5}s with total reward {:<5.2f} and end signal {:<10}'.\
                  format(self.stats_recorder.episode_lengths[-1] * self.time_step,
                         self.stats_recorder.episode_rewards[-1], self.last_done_info)
 
