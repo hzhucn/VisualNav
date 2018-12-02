@@ -32,13 +32,11 @@ def heatmap(image, heat_map, alpha=0.6, cmap='Reds', ax=None):
     plt.show()
 
 
-def top_down_view(state, ax, in_view_humans):
+def top_down_view(robot, humans, human_mask, attention_weights, ax, demonstration_action=None):
     ax.clear()
     ax.set_title('Demonstrator')
     robot_radius = 0.3
     human_radius = 0.5
-    robot = state.self_state
-    humans = state.human_states
 
     # invert the y axis
     robot.py = - robot.py
@@ -81,9 +79,11 @@ def top_down_view(state, ax, in_view_humans):
     # time = plt.text(0.4, 0.9, 'Time: {}'.format(0), transform=ax.transAxes)
     # ax.add_artist(time)
 
-    # visualize attention scores
-    for i, (human_index, attention) in enumerate(in_view_humans):
-        ax.text(-1, 6 - 0.5 * i, 'Human {}: {:.2f}'.format(human_index, attention), fontsize=14)
+    visible_cnt = 0
+    for index, mask in enumerate(human_mask):
+        if mask:
+            ax.text(-1, 6 - 0.5 * visible_cnt, 'Human {}: {:.2f}'.format(index, attention_weights[index]), fontsize=14)
+            visible_cnt += 1
 
     # compute orientation in each step and use arrow to show the direction
     robot_orientation = ((robot.px, robot.py), (robot.px + robot_radius * np.cos(robot.theta),
@@ -98,3 +98,6 @@ def top_down_view(state, ax, in_view_humans):
               for orientation in orientations]
     for arrow in arrows:
         ax.add_artist(arrow)
+
+    # add action in next step
+    # action_direction = patches

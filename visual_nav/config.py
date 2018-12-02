@@ -24,7 +24,7 @@ class ILConfig(object):
     def __init__(self, debug=False):
         if debug:
             self.num_test_case = 2
-            self.num_episodes = 500
+            self.num_episodes = 2000
 
 
 class EnvConfig(object):
@@ -32,6 +32,7 @@ class EnvConfig(object):
     image_type = 'DepthPerspective'
     reward_shaping = False
     curriculum_learning = False
+    max_time = 30
 
     # action space
     speed_samples = 2

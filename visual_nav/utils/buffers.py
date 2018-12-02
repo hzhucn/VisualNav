@@ -394,7 +394,7 @@ class DemoBuffer(Dataset):
 
         full_attention_weights = []
         visible_human_index = 0
-        for mask in human_mask:
+        for index, mask in enumerate(human_mask):
             if mask:
                 full_attention_weights.append(attention_weights[visible_human_index])
                 visible_human_index += 1
@@ -479,7 +479,7 @@ class DemoBuffer(Dataset):
         # self.robot_states = self.robot_states[indices]
         # self.human_states = self.human_states[indices]
         # self.human_masks = self.human_masks[indices]
-        # #     self.attention_weights = self.attention_weights[indices]
+        # self.attention_weights = self.attention_weights[indices]
         #
         # self.num_in_buffer = len(indices)
         # self.next_idx = 0

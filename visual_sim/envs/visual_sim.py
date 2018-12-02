@@ -55,7 +55,7 @@ class VisualSim(Env):
         # rewards
         self.collision_penalty = -0.25
         self.success_reward = 1
-        self.max_time = 50
+        self.max_time = config.max_time
         self.reward_shaping = config.reward_shaping
         self.curriculum_learning = config.curriculum_learning
         self.early_reward_ratio = 0.5

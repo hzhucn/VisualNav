@@ -77,6 +77,7 @@ class ImitationLearner(object):
                 joint_state.human_states = [joint_state.human_states[index] for index, mask in enumerate(human_mask) if mask]
                 demonstration = demonstrator.predict(joint_state)
                 attention_weights.append(demonstrator.get_attention_weights())
+                assert len(demonstrator.get_attention_weights()) == sum(human_mask)
                 target_action, action_class = self._approximate_action(demonstration)
                 obs, reward, done, info = self.env.step(target_action)
                 effects.append((torch.IntTensor([[action_class]]), reward, done))
