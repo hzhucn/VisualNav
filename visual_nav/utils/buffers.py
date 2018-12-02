@@ -343,7 +343,10 @@ class DemoBuffer(Dataset):
         self.action = [None] * self.size
         self.reward = [None] * self.size
         self.done = [None] * self.size
-        self.value = [None] * self.size
+        self.robot_states = [None] * self.size
+        self.human_states = [None] * self.size
+        self.human_masks = [None] * self.size
+        self.attention_weights = [None] * self.size
 
     def __len__(self):
         return self.num_in_buffer
@@ -370,8 +373,8 @@ class DemoBuffer(Dataset):
             # transpose image frame into (img_c, img_h, img_w)
             frame = frame.transpose(2, 0, 1)
 
-        self.frames[self.next_idx] = frame
-        self.goals[self.next_idx] = np.array(goal)
+        self.frames[self.next_idx] = frame.astype(np.float32)
+        self.goals[self.next_idx] = np.array(goal).astype(np.float32)
 
         ret = self.next_idx
         self.next_idx = (self.next_idx + 1) % self.size
@@ -384,18 +387,43 @@ class DemoBuffer(Dataset):
         self.reward[idx] = reward
         self.done[idx] = done
 
-    def store_value(self, idx, value):
-        self.value[idx] = value
+    def store_ground_truth_info(self, idx, robot_state, human_states, human_mask, attention_weights):
+        self.robot_states[idx] = robot_state
+        self.human_states[idx] = human_states
+        self.human_masks[idx] = human_mask
+
+        full_attention_weights = []
+        visible_human_index = 0
+        for mask in human_mask:
+            if mask:
+                full_attention_weights.append(attention_weights[visible_human_index])
+                visible_human_index += 1
+            else:
+                full_attention_weights.append(0)
+        self.attention_weights[idx] = full_attention_weights
 
     def save(self, output_dir):
         """ Save experience """
         # reduce the disk space
+        self.frames = np.array(self.frames)
+        self.goals = np.array(self.goals)
+        self.action = np.array(self.action)
+        self.reward = np.array(self.reward)
+        self.done = np.array(self.done)
+        self.robot_states = np.array(self.robot_states)
+        self.human_states = np.array(self.human_states)
+        self.human_masks = np.array(self.human_masks)
+        self.attention_weights = np.array(self.attention_weights)
+
         self.frames = self.frames[:self.num_in_buffer]
         self.goals = self.goals[:self.num_in_buffer]
         self.action = self.action[:self.num_in_buffer]
         self.reward = self.reward[:self.num_in_buffer]
         self.done = self.done[:self.num_in_buffer]
-        self.value = self.value[:self.num_in_buffer]
+        self.robot_states = self.robot_states[:self.num_in_buffer]
+        self.human_states = self.human_states[:self.num_in_buffer]
+        self.human_masks = self.human_masks[:self.num_in_buffer]
+        self.attention_weights = self.attention_weights[:self.num_in_buffer]
 
         if os.path.exists(output_dir):
             key = input('Replay buffer dir exists. Overwrite(y/n)?')
@@ -412,7 +440,10 @@ class DemoBuffer(Dataset):
         np.save(os.path.join(output_dir, 'action'), self.action)
         np.save(os.path.join(output_dir, 'reward'), self.reward)
         np.save(os.path.join(output_dir, 'done'), self.done)
-        np.save(os.path.join(output_dir, 'value'), self.value)
+        np.save(os.path.join(output_dir, 'robot_states'), self.robot_states)
+        np.save(os.path.join(output_dir, 'human_states'), self.human_states)
+        np.save(os.path.join(output_dir, 'human_masks'), self.human_masks)
+        np.save(os.path.join(output_dir, 'attention_weights'), self.attention_weights)
         with open(os.path.join(output_dir, 'num_in_buffer.txt'), 'w') as fo:
             fo.write(str(self.num_in_buffer))
         logging.info('Saved the replay buffer in {}'.format(output_dir))
@@ -421,13 +452,35 @@ class DemoBuffer(Dataset):
         if not os.path.exists(input_dir):
             raise ValueError('Dir does not exist')
 
-        self.frames = np.load(os.path.join(input_dir, 'frames.npy')).astype(np.float32)
-        self.goals = np.load(os.path.join(input_dir, 'goals.npy')).astype(np.float32)
-        self.action = np.load(os.path.join(input_dir, 'action.npy')).astype(np.float32)
-        self.reward = np.load(os.path.join(input_dir, 'reward.npy')).astype(np.float32)
-        self.done = np.load(os.path.join(input_dir, 'done.npy')).astype(np.float32)
-        self.value = np.load(os.path.join(input_dir, 'value.npy')).astype(np.float32)
+        self.frames = np.load(os.path.join(input_dir, 'frames.npy'))
+        self.goals = np.load(os.path.join(input_dir, 'goals.npy'))
+        self.action = np.load(os.path.join(input_dir, 'action.npy'))
+        self.reward = np.load(os.path.join(input_dir, 'reward.npy'))
+        self.done = np.load(os.path.join(input_dir, 'done.npy'))
+        self.robot_states = np.load(os.path.join(input_dir, 'robot_states.npy'))
+        self.human_states = np.load(os.path.join(input_dir, 'human_states.npy'))
+        self.human_masks = np.load(os.path.join(input_dir, 'human_masks.npy'))
+        self.attention_weights = np.load(os.path.join(input_dir, 'attention_weights.npy'))
 
         with open(os.path.join(input_dir, 'num_in_buffer.txt'), 'r') as fo:
             self.num_in_buffer = int(fo.read())
             logging.info('The replay buffer loaded in {}'.format(input_dir))
+
+    def preprocess(self):
+        pass
+        # mask_array = np.stack(self.human_masks)
+        # indices = np.where(np.any(mask_array, axis=1))[0]
+        #
+        # self.frames = self.frames[indices]
+        # self.goals = self.goals[indices]
+        # self.action = self.action[indices]
+        # self.reward = self.reward[indices]
+        # self.done = self.done[indices]
+        # self.robot_states = self.robot_states[indices]
+        # self.human_states = self.human_states[indices]
+        # self.human_masks = self.human_masks[indices]
+        # #     self.attention_weights = self.attention_weights[indices]
+        #
+        # self.num_in_buffer = len(indices)
+        # self.next_idx = 0
+        # logging.info('Number of demonstrations after filtering: {}'.format(self.num_in_buffer))

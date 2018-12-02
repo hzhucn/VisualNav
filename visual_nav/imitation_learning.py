@@ -59,13 +59,24 @@ class ImitationLearner(object):
         while True:
             observations = []
             effects = []
+            robot_states = []
+            human_states = []
+            human_masks = []
+            attention_weights = []
             done = False
             info = ''
             obs = self.env.reset()
-            joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
+            joint_state, human_mask = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
             while not done:
                 observations.append(obs)
+                robot_states.append(joint_state.self_state)
+                human_states.append(joint_state.human_states)
+                human_masks.append(human_mask)
+
+                # masking invisible humans
+                joint_state.human_states = [joint_state.human_states[index] for index, mask in enumerate(human_mask) if mask]
                 demonstration = demonstrator.predict(joint_state)
+                attention_weights.append(demonstrator.get_attention_weights())
                 target_action, action_class = self._approximate_action(demonstration)
                 obs, reward, done, info = self.env.step(target_action)
                 effects.append((torch.IntTensor([[action_class]]), reward, done))
@@ -74,13 +85,15 @@ class ImitationLearner(object):
                     logging.info(self.env.get_episode_summary() + ' in episode {}'.format(episode))
                     obs = self.env.reset()
 
-                joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
+                joint_state, human_mask = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
 
             if info == 'Success':
                 episode += 1
-                for obs, effect in zip(observations, effects):
-                    last_idx = self.replay_buffer.store_observation(obs)
-                    self.replay_buffer.store_effect(last_idx, *effect)
+                for i in range(len(observations)):
+                    last_idx = self.replay_buffer.store_observation(observations[i])
+                    self.replay_buffer.store_effect(last_idx, *effects[i])
+                    self.replay_buffer.store_ground_truth_info(last_idx, robot_states[i], human_states[i],
+                                                               human_masks[i], attention_weights[i])
 
                     # visualize frames
                     # import matplotlib.pyplot as plt
@@ -112,10 +125,12 @@ class ImitationLearner(object):
             return
         if os.path.exists(replay_buffer_file):
             self.replay_buffer.load(replay_buffer_file)
+            self.replay_buffer.preprocess()
         else:
             self._collect_demonstration(num_episodes)
             self.replay_buffer.save(replay_buffer_file)
             logging.info('Total steps: {}'.format(self.replay_buffer.num_in_buffer))
+            self.replay_buffer.preprocess()
 
         # Train classification model
         optimizer = optim.Adam(self.model.parameters(), lr=0.001)
@@ -202,8 +217,8 @@ class ImitationLearner(object):
                 if demonstrator is None:
                     demonstrator = self._initialize_demonstrator()
                 # compute the similarity of two attention models
-                full_obs = self.env.unwrapped.compute_coordinate_observation()
-                partial_obs, human_index_mapping = self.env.unwrapped.compute_coordinate_observation(True, True)
+                full_obs, _ = self.env.unwrapped.compute_coordinate_observation()
+                partial_obs, human_mask = self.env.unwrapped.compute_coordinate_observation(True)
                 _ = demonstrator.predict(partial_obs)
                 demonstrator_attention = demonstrator.model.attention_weights
 
@@ -311,8 +326,8 @@ class ImitationLearner(object):
             episode_attention_acc = defaultdict(list)
             while not done:
                 # compute the similarity of two attention models
-                full_obs = self.env.unwrapped.compute_coordinate_observation()
-                partial_obs, human_index_mapping = self.env.unwrapped.compute_coordinate_observation(True, True)
+                full_obs, _ = self.env.unwrapped.compute_coordinate_observation()
+                partial_obs, human_mask = self.env.unwrapped.compute_coordinate_observation(True)
                 demonstrator_action = demonstrator.predict(partial_obs)
                 target_action, action_index = self._approximate_action(demonstrator_action)
                 demonstrator_attention = demonstrator.model.attention_weights

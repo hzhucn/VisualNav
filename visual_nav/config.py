@@ -16,7 +16,7 @@ class ILConfig(object):
     regression = False
 
     # training config
-    num_episodes = 3000
+    num_episodes = 500
     loss = 'cross_entropy'
     num_epochs = 50
     step_size = 100
@@ -24,7 +24,7 @@ class ILConfig(object):
     def __init__(self, debug=False):
         if debug:
             self.num_test_case = 2
-            self.num_episodes = 10
+            self.num_episodes = 500
 
 
 class EnvConfig(object):
