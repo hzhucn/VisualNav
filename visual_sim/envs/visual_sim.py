@@ -2,6 +2,7 @@ import itertools
 import logging
 from collections import defaultdict
 from collections import namedtuple
+import time
 
 import airsim
 import numpy as np
@@ -79,7 +80,9 @@ class VisualSim(Env):
 
         # observation_space
         self.image_type = config.image_type
-        self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[config.image_type].channel_size))
+        self.num_frame_per_step = config.num_frame_per_step
+        self.observation_space = Box(low=0, high=255, shape=(84, 84, ImageInfo[config.image_type].channel_size *
+                                                             self.num_frame_per_step))
         self.fov = np.pi / 3 * 2
 
         self.client = None
@@ -113,11 +116,12 @@ class VisualSim(Env):
 
         self._update_states()
         obs = self.compute_observation()
+        if self.num_frame_per_step != 1:
+            obs = Observation(np.repeat(obs.image, self.num_frame_per_step, axis=2), obs.goal)
 
         return obs
 
     def step(self, action):
-        import time
         pose = self.client.simGetVehiclePose()
         position = pose.position
         orientation = pose.orientation
@@ -148,9 +152,15 @@ class VisualSim(Env):
                 raise NotImplementedError
             self._move((x, y, self.initial_position[2]), yaw)
             if self.blocking:
-                self.client.simContinueForTime(self.time_step / self.clock_speed)
-                while not self.client.simIsPause():
-                    time.sleep(0.001)
+                if self.num_frame_per_step == 1:
+                    self.client.simContinueForTime(self.time_step / self.clock_speed)
+                    while not self.client.simIsPause():
+                        time.sleep(0.001)
+                    observation = self.compute_observation()
+                else:
+                    observation = self.compute_multiple_observation()
+            else:
+                raise NotImplementedError
         self.time += self.time_step
         self._update_states()
 
@@ -188,8 +198,6 @@ class VisualSim(Env):
             done = False
             info = ''
 
-        observation = self.compute_observation()
-
         return observation, reward, done, info
 
     def render(self, mode='human'):
@@ -198,6 +206,43 @@ class VisualSim(Env):
     def _move(self, pos, yaw):
         self.client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(float(pos[0]), float(pos[1]), float(pos[2])),
                                                   airsim.to_quaternion(0, 0, yaw)), True)
+
+    def compute_multiple_observation(self):
+        frames = []
+        for _ in range(self.num_frame_per_step):
+            self.client.simContinueForTime(self.time_step / self.clock_speed / self.num_frame_per_step)
+            while not self.client.simIsPause():
+                time.sleep(0.001)
+
+            # retrieve visual observation
+            image_type = ImageInfo[self.image_type]
+            responses = self.client.simGetImages([airsim.ImageRequest(0, image_type.index, image_type.as_float, False)])
+            response = responses[0]
+
+            if image_type.as_float:
+                img1d = np.array(response.image_data_float, dtype=np.float)
+                img1d = 255 / np.maximum(np.ones(img1d.size), img1d)
+                img2d = np.reshape(img1d, (response.height, response.width))
+                image = np.expand_dims(Image.fromarray(img2d).convert('L'), axis=2)
+            else:
+                # get numpy array
+                img1d = np.fromstring(response.image_data_uint8, dtype=np.uint8)
+                image = img1d.reshape(response.height, response.width, image_type.channel_size)
+                image = np.ascontiguousarray(image, dtype=np.uint8)
+            frames.append(image)
+        frames = np.concatenate(frames, axis=2)
+
+        # retrieve poses for both human and robot
+        pose = self.client.simGetVehiclePose()
+        r = self._distance_to_goal(pose.position)
+        yaw = airsim.to_eularian_angles(pose.orientation)[2]
+        phi = np.arctan2(self.goal_position[1] - pose.position.y_val, self.goal_position[0] - pose.position.x_val) - yaw
+        goal = Goal(r, phi)
+        # logging.debug('Goal distance: {:.2f}, relative angle: {:.2f}'.format(r, np.rad2deg(phi)))
+
+        observation = Observation(frames, goal)
+
+        return observation
 
     def compute_observation(self):
         # retrieve visual observation

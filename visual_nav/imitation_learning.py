@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 from crowd_sim.envs.utils.action import ActionXY
 from crowd_nav.policy.sarl import SARL
-from visual_nav.utils.replay_buffer import ReplayBuffer, BufferWrapper, pack_batch
+from visual_nav.utils.buffers import DemoBuffer, BufferWrapper, pack_batch
 from visual_nav.utils.visualization_tools import heatmap, top_down_view
 from visual_nav.models.models import model_factory
 
@@ -53,6 +53,45 @@ class ImitationLearner(object):
                             for i, action in enumerate(self.env.unwrapped.actions)}
         self.idx2action = torch.from_numpy(np.stack([action for action in self.env.unwrapped.actions])).float()
 
+    def _collect_demonstration(self, num_episodes):
+        demonstrator = self._initialize_demonstrator()
+        episode = 0
+        while True:
+            observations = []
+            effects = []
+            done = False
+            info = ''
+            obs = self.env.reset()
+            joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
+            while not done:
+                observations.append(obs)
+                demonstration = demonstrator.predict(joint_state)
+                target_action, action_class = self._approximate_action(demonstration)
+                obs, reward, done, info = self.env.step(target_action)
+                effects.append((torch.IntTensor([[action_class]]), reward, done))
+
+                if done:
+                    logging.info(self.env.get_episode_summary() + ' in episode {}'.format(episode))
+                    obs = self.env.reset()
+
+                joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
+
+            if info == 'Success':
+                episode += 1
+                for obs, effect in zip(observations, effects):
+                    last_idx = self.replay_buffer.store_observation(obs)
+                    self.replay_buffer.store_effect(last_idx, *effect)
+
+                    # visualize frames
+                    # import matplotlib.pyplot as plt
+                    # fig, axes = plt.subplots(2, 2)
+                    # axes[0, 0].imshow(obs.image[:, :, 0], cmap='gray')
+                    # axes[0, 1].imshow(obs.image[:, :, 1], cmap='gray')
+                    # axes[1, 0].imshow(obs.image[:, :, 2], cmap='gray')
+                    # axes[1, 1].imshow(obs.image[:, :, 3], cmap='gray')
+            if episode > num_episodes:
+                break
+
     def train(self):
         """
         Imitation learning and reinforcement learning share the same environment, replay buffer and model function
@@ -62,11 +101,9 @@ class ImitationLearner(object):
         loss = self.config.loss
         num_epochs = self.config.num_epochs
         step_size = self.config.step_size
-        il_max_time = 20
-        num_train_batch = num_episodes * 50
-        optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-        self.replay_buffer = ReplayBuffer(int(num_episodes * il_max_time / self.env.time_step),
-                                          self.frame_history_len, self.image_size)
+        max_time = self.env.unwrapped.max_time
+        self.replay_buffer = DemoBuffer(int(num_episodes * max_time / self.env.time_step),
+                                            self.frame_history_len, self.image_size)
 
         logging.info('Start imitation learning')
         weights_file = os.path.join(self.output_dir, 'il_model.pth')
@@ -76,44 +113,14 @@ class ImitationLearner(object):
         if os.path.exists(replay_buffer_file):
             self.replay_buffer.load(replay_buffer_file)
         else:
-            demonstrator = self._initialize_demonstrator()
-            self.env.unwrapped.max_time = il_max_time
-            episode = 0
-            while True:
-                observations = []
-                effects = []
-                done = False
-                info = ''
-                obs = self.env.reset()
-                joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
-                while not done:
-                    observations.append(obs)
-                    demonstration = demonstrator.predict(joint_state)
-                    target_action, action_class = self._approximate_action(demonstration)
-                    obs, reward, done, info = self.env.step(target_action)
-                    effects.append((torch.IntTensor([[action_class]]), reward, done))
-
-                    if done:
-                        logging.info(self.env.get_episode_summary() + ' in episode {}'.format(episode))
-                        obs = self.env.reset()
-
-                    joint_state = self.env.unwrapped.compute_coordinate_observation(with_fov=True)
-
-                if info == 'Success':
-                    episode += 1
-                    for obs, effect in zip(observations, effects):
-                        last_idx = self.replay_buffer.store_observation(obs)
-                        self.replay_buffer.store_effect(last_idx, *effect)
-                if episode > num_episodes:
-                    break
-
+            self._collect_demonstration(num_episodes)
             self.replay_buffer.save(replay_buffer_file)
             logging.info('Total steps: {}'.format(self.replay_buffer.num_in_buffer))
 
-        # finish collecting experience and update the model
+        # Train classification model
+        optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         if loss == 'cross_entropy':
             criterion = nn.CrossEntropyLoss().to(self.device)
-            # self._action_classification_batch(optimizer, criterion, num_train_batch)
             self._train_classification(optimizer, criterion, num_epochs, step_size)
         elif loss == 'regression':
             criterion = nn.MSELoss().to(self.device)

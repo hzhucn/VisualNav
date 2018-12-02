@@ -29,7 +29,7 @@ class GDNet(nn.Module):
         self.W = 7
         self.E = 32
         # input goal dim
-        self.D = 2 * in_channels
+        self.D = 2
 
         if with_sa:
             if not with_ga:

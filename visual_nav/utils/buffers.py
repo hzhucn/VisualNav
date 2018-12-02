@@ -328,3 +328,106 @@ def pack_batch(batch):
 
     return frame_batch, goal_batch, action_batch
 
+
+class DemoBuffer(Dataset):
+    def __init__(self, size, frame_history_len, image_size):
+        self.size = size
+        self.frame_history_len = frame_history_len
+        self.image_size = image_size
+
+        self.next_idx = 0
+        self.num_in_buffer = 0
+
+        self.frames = [None] * self.size
+        self.goals = [None] * self.size
+        self.action = [None] * self.size
+        self.reward = [None] * self.size
+        self.done = [None] * self.size
+        self.value = [None] * self.size
+
+    def __len__(self):
+        return self.num_in_buffer
+
+    def __getitem__(self, idx):
+        return self.encode_observation(idx)
+
+    def encode_recent_observation(self):
+        assert self.num_in_buffer > 0
+        return self.encode_observation((self.next_idx - 1) % self.size)
+
+    def encode_observation(self, idx):
+        return self.frames[idx], self.goals[idx]
+
+    def store_observation(self, ob):
+        frame = ob.image
+        if frame.shape != self.image_size:
+            assert frame.shape[2] == 1
+            frame = np.expand_dims(Image.fromarray(frame.squeeze()).resize(self.image_size[:2]), axis=2)
+        goal = ob.goal
+
+        # make sure we are not using low-dimensional observations, such as RAM
+        if len(frame.shape) > 1:
+            # transpose image frame into (img_c, img_h, img_w)
+            frame = frame.transpose(2, 0, 1)
+
+        self.frames[self.next_idx] = frame
+        self.goals[self.next_idx] = np.array(goal)
+
+        ret = self.next_idx
+        self.next_idx = (self.next_idx + 1) % self.size
+        self.num_in_buffer = min(self.size, self.num_in_buffer + 1)
+
+        return ret
+
+    def store_effect(self, idx, action, reward, done):
+        self.action[idx] = action
+        self.reward[idx] = reward
+        self.done[idx] = done
+
+    def store_value(self, idx, value):
+        self.value[idx] = value
+
+    def save(self, output_dir):
+        """ Save experience """
+        # reduce the disk space
+        self.frames = self.frames[:self.num_in_buffer]
+        self.goals = self.goals[:self.num_in_buffer]
+        self.action = self.action[:self.num_in_buffer]
+        self.reward = self.reward[:self.num_in_buffer]
+        self.done = self.done[:self.num_in_buffer]
+        self.value = self.value[:self.num_in_buffer]
+
+        if os.path.exists(output_dir):
+            key = input('Replay buffer dir exists. Overwrite(y/n)?')
+            if key == 'y':
+                shutil.rmtree(output_dir)
+            else:
+                return
+            os.mkdir(output_dir)
+        else:
+            os.mkdir(output_dir)
+
+        np.save(os.path.join(output_dir, 'frames'), self.frames)
+        np.save(os.path.join(output_dir, 'goals'), self.goals)
+        np.save(os.path.join(output_dir, 'action'), self.action)
+        np.save(os.path.join(output_dir, 'reward'), self.reward)
+        np.save(os.path.join(output_dir, 'done'), self.done)
+        np.save(os.path.join(output_dir, 'value'), self.value)
+        with open(os.path.join(output_dir, 'num_in_buffer.txt'), 'w') as fo:
+            fo.write(str(self.num_in_buffer))
+        logging.info('Saved the replay buffer in {}'.format(output_dir))
+
+    def load(self, input_dir):
+        if not os.path.exists(input_dir):
+            raise ValueError('Dir does not exist')
+
+        self.frames = np.load(os.path.join(input_dir, 'frames.npy')).astype(np.float32)
+        self.goals = np.load(os.path.join(input_dir, 'goals.npy')).astype(np.float32)
+        self.action = np.load(os.path.join(input_dir, 'action.npy')).astype(np.float32)
+        self.reward = np.load(os.path.join(input_dir, 'reward.npy')).astype(np.float32)
+        self.done = np.load(os.path.join(input_dir, 'done.npy')).astype(np.float32)
+        self.value = np.load(os.path.join(input_dir, 'value.npy')).astype(np.float32)
+
+        with open(os.path.join(input_dir, 'num_in_buffer.txt'), 'r') as fo:
+            self.num_in_buffer = int(fo.read())
+            logging.info('The replay buffer loaded in {}'.format(input_dir))

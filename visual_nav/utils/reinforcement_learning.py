@@ -5,7 +5,7 @@ import os
 import numpy as np
 import torch
 from tensorboardX import SummaryWriter
-from visual_nav.utils.replay_buffer import ReplayBuffer
+from visual_nav.utils.buffers import ReplayBuffer
 
 
 class ReinforcementLearner(object):

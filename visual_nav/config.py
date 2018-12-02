@@ -9,7 +9,7 @@ class ILConfig(object):
     replay_buffer_size = 1000000
     batch_size = 128
     gamma = 0.9
-    frame_history_len = 4
+    frame_history_len = 1
     target_update_freq = 10000
     num_test_case = 100
     use_best_wts = False
@@ -28,7 +28,7 @@ class ILConfig(object):
 
 
 class EnvConfig(object):
-    human_num = 1
+    human_num = 4
     image_type = 'DepthPerspective'
     reward_shaping = False
     curriculum_learning = False
@@ -37,6 +37,8 @@ class EnvConfig(object):
     speed_samples = 2
     rotation_samples = 7
     abs_rotation_bound = np.pi / 3
+
+    num_frame_per_step = 4
 
     def __init__(self, debug=False):
         if debug:
