@@ -32,9 +32,12 @@ def heatmap(image, heat_map, alpha=0.6, cmap='Reds', ax=None):
     plt.show()
 
 
-def top_down_view(robot, humans, human_mask, attention_weights, ax, demonstration_action=None):
+def top_down_view(robot, humans, human_mask, attention_weights, ax, action=None):
     ax.clear()
-    ax.set_title('Demonstrator')
+    if action:
+        ax.set_title('Demonstrator action v: {:.2f}, r: {:.0f}'.format(action.v, np.rad2deg(action.r)))
+    else:
+        ax.set_title('Demonstrator')
     robot_radius = 0.3
     human_radius = 0.5
 

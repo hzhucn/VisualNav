@@ -35,9 +35,9 @@ class EnvConfig(object):
     max_time = 30
 
     # action space
-    speed_samples = 2
+    speed_samples = 1
     rotation_samples = 7
-    abs_rotation_bound = np.pi / 3
+    abs_rotation_range = np.pi / 3
 
     num_frame_per_step = 4
 

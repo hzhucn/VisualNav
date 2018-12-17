@@ -74,7 +74,7 @@ class VisualSim(Env):
         # action space
         self.speed_samples = config.speed_samples
         self.rotation_samples = config.rotation_samples
-        self.abs_rotation_bound = config.abs_rotation_bound
+        self.abs_rotation_range = config.abs_rotation_range
         self.actions = self._build_action_space()
         self.action_space = Discrete(self.speed_samples * self.rotation_samples + 1)
 
@@ -357,7 +357,7 @@ class VisualSim(Env):
     def _build_action_space(self):
         speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * self.max_speed for i in
                   range(self.speed_samples)]
-        rotations = np.linspace(-self.abs_rotation_bound, self.abs_rotation_bound, self.rotation_samples)
+        rotations = np.linspace(-self.abs_rotation_range, self.abs_rotation_range, self.rotation_samples)
 
         actions = [ActionRot(0, 0)]
         for rotation, speed in itertools.product(rotations, speeds):
